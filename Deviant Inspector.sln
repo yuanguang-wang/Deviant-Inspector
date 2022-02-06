@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32106.194
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Deviant Inspector", "Deviant Inspector.csproj", "{3352F9D9-5FCB-488F-9575-3B006296A276}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3352F9D9-5FCB-488F-9575-3B006296A276}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3352F9D9-5FCB-488F-9575-3B006296A276}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3352F9D9-5FCB-488F-9575-3B006296A276}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3352F9D9-5FCB-488F-9575-3B006296A276}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {898090A1-1F5F-434C-B5D6-C6A8398BE52C}
+	EndGlobalSection
+EndGlobal
