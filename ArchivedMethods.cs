@@ -54,5 +54,15 @@ namespace Deviant_Inspector
             objCollector = getObjects.Objects();
             return true;
         }
+
+        public static bool NameColorResetTool(Rhino.DocObjects.RhinoObject obj)
+        {
+            obj.Attributes.ColorSource = Rhino.DocObjects.ObjectColorSource.ColorFromObject;
+            obj.Attributes.ObjectColor = System.Drawing.Color.Red;
+            obj.Attributes.Name = "test name";
+            obj.CommitChanges();
+            
+            return true;
+        }
     }
 }

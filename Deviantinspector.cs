@@ -33,43 +33,85 @@ namespace Deviant_Inspector
 
         protected override Rhino.Commands.Result RunCommand(RhinoDoc doc, Rhino.Commands.RunMode mode)
         {
+            // Initiation
+            Rhino.Input.Custom.GetOption getOption = new Rhino.Input.Custom.GetOption();
+            getOption.AcceptNothing(true);
             Rhino.Input.Custom.GetObject getObjects = new Rhino.Input.Custom.GetObject 
             {
                 GeometryFilter = Rhino.DocObjects.ObjectType.Brep,
                 GroupSelect = true,
                 SubObjectSelect = false
-            };            
+            };
+
             // Set Options
             Rhino.Input.Custom.OptionToggle abVerti = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle redunCP = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle fltSurf = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle dupBrep = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
+
             // Remarks on method AddOptionToggle
             // Body: str Must only consist of letters and numbers (no characters list periods, spaces, or dashes))
             // Type OptionToggle need a ref prefix
-            getObjects.AddOptionToggle("AbsolutelyVertical", ref abVerti);
-            getObjects.AddOptionToggle("RedundantControlPoints", ref redunCP);
-            getObjects.AddOptionToggle("NearlyFlatSurface", ref fltSurf);
-            getObjects.AddOptionToggle("UnexpectedDuplication", ref dupBrep);
-            // Data Collection           
+            getOption.AddOptionToggle("AbsolutelyVertical", ref abVerti);
+            getOption.AddOptionToggle("RedundantControlPoints", ref redunCP);
+            getOption.AddOptionToggle("NearlyFlatSurface", ref fltSurf);
+            getOption.AddOptionToggle("UnexpectedDuplication", ref dupBrep);
+
+            // Option Collection
+            string[] subCommandsAry = new string[] {"On","On","On","On"};
+            getOption.SetCommandPrompt("Select the Inspector to be Excuted, Press Enter When Finish Setting");
             while (true)
             {
-                Rhino.Input.GetResult rc = getObjects.GetMultiple(1,0);
-                if (rc == Rhino.Input.GetResult.Option)
+                Rhino.Input.GetResult rc = getOption.Get();
+                if (getOption.CommandResult() != Rhino.Commands.Result.Success)
                 {
+                return getOption.CommandResult();
+                }
+                if (rc == Rhino.Input.GetResult.Nothing)
+                {
+                    RhinoApp.WriteLine("Inspector Setting Finished");
+                    break;
+                }
+                else if (rc == Rhino.Input.GetResult.Option)
+                {
+                    int x = getOption.OptionIndex();
+                    if (getOption.Option().StringOptionValue == "Off")
+                    {
+                        subCommandsAry[x - 1] = "Off";
+                    }
                     continue;
                 }
-                else if (rc == Rhino.Input.GetResult.Object)
-                {
-                    RhinoApp.WriteLine("obj selected");
-                }
-                else
-                {
-                    RhinoApp.WriteLine("Selection has been Interrupted, Command Exit");
-                    return Rhino.Commands.Result.Failure;
-                }
-                break;                
             }
+
+            // Brep Collection
+            getObjects.SetCommandPrompt("Select the B-Reps to be Inspected");
+            getObjects.GetMultiple(1,0);
+            if (getObjects.CommandResult() != Rhino.Commands.Result.Success)
+            {
+                RhinoApp.WriteLine("GetObject Method Failure, Command Exit");
+                return Rhino.Commands.Result.Failure;
+            }
+            Rhino.DocObjects.ObjRef[] objs = getObjects.Objects();
+            List<Rhino.Geometry.Brep> breps = new List<Rhino.Geometry.Brep>();
+            List<Rhino.DocObjects.RhinoObject> rh_objs = new List<Rhino.DocObjects.RhinoObject>();
+            foreach (Rhino.DocObjects.ObjRef obj in objs)
+            {
+                breps.Add(obj.Brep());
+                rh_objs.Add(obj.Object());
+            }
+
+            // Run subCommand dependently
+            foreach (string subCommand in subCommandsAry)
+            {
+                if (subCommand == "On")
+                {
+
+                }
+            }
+
+            ArchivedMethods.NameColorResetTool(rh_objs[0]);
+            doc.Views.Redraw();
+
             return Rhino.Commands.Result.Success;
         }
     }
