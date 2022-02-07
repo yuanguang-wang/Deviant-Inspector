@@ -7,7 +7,7 @@ using Rhino;
 
 namespace Deviant_Inspector
 {
-    public class ArchivedMethods
+    public class Method_Archived
     {
         public static bool ObjCollector(string keyword, out Rhino.DocObjects.ObjRef[] objCollector)
         {

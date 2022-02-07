@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Deviant_Inspector
 {
-    public class Deviantinspector : Rhino.Commands.Command
+    public class Deviant_InspectorCommand : Rhino.Commands.Command
     {
 
         /// <summary>
@@ -18,7 +18,7 @@ namespace Deviant_Inspector
         ///     7.Set Criminal's Color (C);
         /// </summary>
 
-        public Deviantinspector()
+        public Deviant_InspectorCommand()
         {
             // Rhino only creates one instance of each command class defined in a
             // plug-in, so it is safe to store a refence in a static property.
@@ -26,7 +26,7 @@ namespace Deviant_Inspector
         }
 
         ///<summary>The only instance of this command.</summary>
-        public static Deviantinspector Instance { get; private set; }
+        public static Deviant_InspectorCommand Instance { get; private set; }
 
         ///<returns>The command name as it appears on the Rhino command line.</returns>
         public override string EnglishName => "Deviantinspector";
@@ -108,8 +108,11 @@ namespace Deviant_Inspector
 
                 }
             }
+            foreach (Rhino.DocObjects.RhinoObject rhinoObject in rh_objs)
+            {
+                Method_Main.ObjAttrRevise(rhinoObject, "TestName|");
+            }
 
-            ArchivedMethods.NameColorResetTool(rh_objs[0]);
             doc.Views.Redraw();
 
             return Rhino.Commands.Result.Success;
