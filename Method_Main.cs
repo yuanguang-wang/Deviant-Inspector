@@ -35,5 +35,39 @@ namespace Deviant_Inspector
 
             return true;
         }
+
+        public static bool SrfCollector(Rhino.Geometry.Brep brep, out List<Rhino.Geometry.Surface> srf_List)
+        {
+            // Trigger Setting
+            /*
+            bool flatSrfTrigger = false;
+            bool abVertiTrigger = false;
+            bool redunCPTrigger = false;
+            bool extuCrvTrigger = false;
+            */
+            srf_List = new List<Rhino.Geometry.Surface>();
+            Rhino.Geometry.Collections.BrepFaceList brepFace_List = brep.Faces;
+            foreach (Rhino.Geometry.BrepFace brepFace in brepFace_List) 
+            {
+                srf_List.Add(brepFace.UnderlyingSurface());
+            }            
+            return true;
+        }
+
+        public static bool FlatSrfCheck(Rhino.Geometry.Surface srf, double modelTolerance, int enlargeRatio, out bool flatSrfTrigger) 
+        {
+            flatSrfTrigger = false;
+            double relaviteTolerance = modelTolerance * enlargeRatio;
+            if (srf.IsPlanar(modelTolerance) == false)
+            {
+                // RhinoApp.WriteLine("model tolerance is false");
+                if (srf.IsPlanar(relaviteTolerance) == true)
+                {
+                    flatSrfTrigger = true;
+                    // RhinoApp.WriteLine("relavite tolerance is true");
+                }
+            }
+            return true;
+        }
     }
 }

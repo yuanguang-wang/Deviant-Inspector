@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 
+using MM = Deviant_Inspector.Method_Main;
+
 namespace Deviant_Inspector
 {
     public class Deviant_InspectorCommand : Rhino.Commands.Command
@@ -35,30 +37,39 @@ namespace Deviant_Inspector
         {
             // Initiation
             Rhino.Input.Custom.GetOption getOption = new Rhino.Input.Custom.GetOption();
-            getOption.AcceptNothing(true);
             Rhino.Input.Custom.GetObject getObjects = new Rhino.Input.Custom.GetObject 
             {
                 GeometryFilter = Rhino.DocObjects.ObjectType.Brep,
                 GroupSelect = true,
                 SubObjectSelect = false
             };
+            double modelTolerance = doc.ModelAbsoluteTolerance;
+            int enlargeRatio = 100;
 
             // Set Options
+            //Target: Rhino.Geometry.Surface
             Rhino.Input.Custom.OptionToggle abVerti = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
+            //Target: Rhino.Geometry.Surface
             Rhino.Input.Custom.OptionToggle redunCP = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
+            //Target: Rhino.Geometry.Surface
             Rhino.Input.Custom.OptionToggle fltSurf = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
+            //Target: Rhino.Geometry.Brep
             Rhino.Input.Custom.OptionToggle dupBrep = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
+            //Target: Rhino.Geometry.Surface
+            Rhino.Input.Custom.OptionToggle extuCrv = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
 
             // Remarks on method AddOptionToggle
             // Body: str Must only consist of letters and numbers (no characters list periods, spaces, or dashes))
             // Type OptionToggle need a ref prefix
-            getOption.AddOptionToggle("AbsolutelyVertical", ref abVerti);
-            getOption.AddOptionToggle("RedundantControlPoints", ref redunCP);
-            getOption.AddOptionToggle("NearlyFlatSurface", ref fltSurf);
-            getOption.AddOptionToggle("UnexpectedDuplication", ref dupBrep);
+            getOption.AddOptionToggle("Absolutely_Vertical", ref abVerti);
+            getOption.AddOptionToggle("Redundant_Control_Points", ref redunCP);
+            getOption.AddOptionToggle("Nearly_Flat_Surface", ref fltSurf);
+            getOption.AddOptionToggle("Unexpected_Duplication", ref dupBrep);
+            getOption.AddOptionToggle("Extruded_Curve_Wrong_Direction", ref extuCrv);
+            getOption.AcceptNothing(true);
 
-            // Option Collection
-            string[] subCommandsAry = new string[] {"On","On","On","On"};
+            // Option Setting Loop
+            string[] subCommandsAry = new string[] {"On","On","On","On", "On"};
             getOption.SetCommandPrompt("Select the Inspector to be Excuted, Press Enter When Finish Setting");
             while (true)
             {
@@ -91,13 +102,13 @@ namespace Deviant_Inspector
                 RhinoApp.WriteLine("GetObject Method Failure, Command Exit");
                 return Rhino.Commands.Result.Failure;
             }
-            Rhino.DocObjects.ObjRef[] objs = getObjects.Objects();
-            List<Rhino.Geometry.Brep> breps = new List<Rhino.Geometry.Brep>();
-            List<Rhino.DocObjects.RhinoObject> rh_objs = new List<Rhino.DocObjects.RhinoObject>();
-            foreach (Rhino.DocObjects.ObjRef obj in objs)
+            Rhino.DocObjects.ObjRef[] objsRef_Arry = getObjects.Objects();
+            List<Rhino.Geometry.Brep> breps_List = new List<Rhino.Geometry.Brep>();
+            List<Rhino.DocObjects.RhinoObject> rhObjs_List = new List<Rhino.DocObjects.RhinoObject>();
+            foreach (Rhino.DocObjects.ObjRef obj in objsRef_Arry)
             {
-                breps.Add(obj.Brep());
-                rh_objs.Add(obj.Object());
+                breps_List.Add(obj.Brep());
+                rhObjs_List.Add(obj.Object());
             }
 
             // Run subCommand dependently
@@ -108,11 +119,30 @@ namespace Deviant_Inspector
 
                 }
             }
-            foreach (Rhino.DocObjects.RhinoObject rhinoObject in rh_objs)
-            {
-                Method_Main.ObjAttrRevise(rhinoObject, "TestName|");
-            }
 
+            // Change the Color and Name
+            // Iterate All rhObjs in List
+            List<Rhino.DocObjects.RhinoObject> flatSrf_List = new List<Rhino.DocObjects.RhinoObject>();
+            int index = 0;
+            int counter = 0;
+            foreach (Rhino.DocObjects.RhinoObject rhObj in rhObjs_List)
+            {
+                MM.SrfCollector(breps_List[index], out List<Rhino.Geometry.Surface> srf_List);
+                foreach (Rhino.Geometry.Surface srf in srf_List)
+                {
+                    MM.FlatSrfCheck(srf, modelTolerance, enlargeRatio, out bool flatSrfTrigger);
+                    if (flatSrfTrigger)
+                    {
+                        flatSrf_List.Add(rhObj);
+                        MM.ObjAttrRevise(rhObj, "NearlyFlatSurface|");
+                        counter++;
+                        break;
+                    }
+                }
+                index++;
+            }
+            RhinoApp.WriteLine(counter.ToString());
+            RhinoApp.WriteLine(modelTolerance.ToString());
             doc.Views.Redraw();
 
             return Rhino.Commands.Result.Success;

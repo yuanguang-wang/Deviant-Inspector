@@ -64,5 +64,26 @@ namespace Deviant_Inspector
             
             return true;
         }
+
+        public static bool ObjAttrRevise(Rhino.DocObjects.RhinoObject rhObj, string newName)
+        {
+            //Color Revision
+            rhObj.Attributes.ColorSource = Rhino.DocObjects.ObjectColorSource.ColorFromObject;
+            rhObj.Attributes.ObjectColor = System.Drawing.Color.Red;
+            //Name Revision
+            if (rhObj.Attributes.Name == null)
+            {
+                rhObj.Attributes.Name = "|";
+            }
+            string currentName = rhObj.Attributes.Name;
+            if (!currentName.Contains(newName))
+            {
+                newName = currentName + newName;
+            }
+            rhObj.Attributes.Name = newName;
+            rhObj.CommitChanges();
+
+            return true;
+        }
     }
 }
