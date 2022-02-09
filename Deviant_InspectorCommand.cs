@@ -123,23 +123,29 @@ namespace Deviant_Inspector
             // Change the Color and Name
             // Iterate All rhObjs in List
             List<Rhino.DocObjects.RhinoObject> flatSrf_List = new List<Rhino.DocObjects.RhinoObject>();
+            Rhino.Geometry.Collections.BrepFaceList brepFace_List;
             int index = 0;
             int counter = 0;
             foreach (Rhino.DocObjects.RhinoObject rhObj in rhObjs_List)
             {
+                int j = 0;
                 MM.SrfCollector(breps_List[index], out List<Rhino.Geometry.Surface> srf_List);
                 foreach (Rhino.Geometry.Surface srf in srf_List)
                 {
+                    brepFace_List= breps_List[index].Faces;
                     MM.FlatSrfCheck(srf, modelTolerance, enlargeRatio, out bool flatSrfTrigger);
                     if (flatSrfTrigger)
                     {
                         flatSrf_List.Add(rhObj);
-                        MM.ObjAttrRevise(rhObj, "NearlyFlatSurface|");
+                        brepFace_List[j].PerFaceColor = System.Drawing.Color.Red;
                         counter++;
-                        break;
+                        MM.ObjAttrRevise(rhObj, "NearlyFlatSurface|");
+
                     }
+                    j++;
                 }
                 index++;
+                
             }
             RhinoApp.WriteLine(counter.ToString());
             RhinoApp.WriteLine(modelTolerance.ToString());

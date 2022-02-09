@@ -19,7 +19,7 @@ namespace Deviant_Inspector
         {
             //Color Revision
             rhObj.Attributes.ColorSource = Rhino.DocObjects.ObjectColorSource.ColorFromObject;
-            rhObj.Attributes.ObjectColor = System.Drawing.Color.Red;
+            //rhObj.Attributes.ObjectColor = System.Drawing.Color.Red;
             //Name Revision
             if (rhObj.Attributes.Name == null)
             {
