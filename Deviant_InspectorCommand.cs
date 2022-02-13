@@ -45,6 +45,7 @@ namespace Deviant_Inspector
             };
             double modelTolerance = doc.ModelAbsoluteTolerance;
             int enlargeRatio = 100;
+            System.Drawing.Color color = System.Drawing.Color.Red;
 
             // Set Options
             //Target: Rhino.Geometry.Surface
@@ -122,33 +123,29 @@ namespace Deviant_Inspector
 
             // Change the Color and Name
             // Iterate All rhObjs in List
-            List<Rhino.DocObjects.RhinoObject> flatSrf_List = new List<Rhino.DocObjects.RhinoObject>();
-            Rhino.Geometry.Collections.BrepFaceList brepFace_List;
-            int index = 0;
-            int counter = 0;
-            foreach (Rhino.DocObjects.RhinoObject rhObj in rhObjs_List)
+            int i = 0;
+            foreach (Rhino.Geometry.Brep brep in breps_List)
             {
-                int j = 0;
-                MM.SrfCollector(breps_List[index], out List<Rhino.Geometry.Surface> srf_List);
-                foreach (Rhino.Geometry.Surface srf in srf_List)
+                List<int> criminalIndex_list = new List<int>();
+                foreach (Rhino.Geometry.BrepFace brepFace in brep.Faces)
                 {
-                    brepFace_List= breps_List[index].Faces;
-                    MM.FlatSrfCheck(srf, modelTolerance, enlargeRatio, out bool flatSrfTrigger);
+                    MM.FlatSrfCheck(brepFace, modelTolerance, enlargeRatio, out bool flatSrfTrigger);
                     if (flatSrfTrigger)
                     {
-                        flatSrf_List.Add(rhObj);
-                        brepFace_List[j].PerFaceColor = System.Drawing.Color.Red;
-                        counter++;
-                        MM.ObjAttrRevise(rhObj, "NearlyFlatSurface|");
-
+                        criminalIndex_list.Add(brepFace.FaceIndex);
                     }
-                    j++;
                 }
-                index++;
-                
+                if (criminalIndex_list.Count != 0)
+                {
+                    MM.ObjColorRevise(color, brep, criminalIndex_list, out Rhino.Geometry.Brep newBrep);
+                    doc.Objects.Replace(objsRef_Arry[i],newBrep);
+                    MM.ObjNameRevise(rhObjs_List[i], "|NearlyFlatSurface|");
+                }
+                i++;
             }
-            RhinoApp.WriteLine(counter.ToString());
-            RhinoApp.WriteLine(modelTolerance.ToString());
+                
+            
+
             doc.Views.Redraw();
 
             return Rhino.Commands.Result.Success;

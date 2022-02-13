@@ -15,11 +15,8 @@ namespace Deviant_Inspector
         /// <param name="rhObj">Rhino.DocObjects.RhinoObject</param>
         /// <param name="newName">System.String</param>
         /// <returns>returns true if worked, use #Rhino.DocObjects.RhinoObject.CommitChange# </returns>
-        public static bool ObjAttrRevise(Rhino.DocObjects.RhinoObject rhObj, string newName)
+        public static bool ObjNameRevise(Rhino.DocObjects.RhinoObject rhObj, string newName)
         {
-            //Color Revision
-            rhObj.Attributes.ColorSource = Rhino.DocObjects.ObjectColorSource.ColorFromObject;
-            //rhObj.Attributes.ObjectColor = System.Drawing.Color.Red;
             //Name Revision
             if (rhObj.Attributes.Name == null)
             {
@@ -36,32 +33,25 @@ namespace Deviant_Inspector
             return true;
         }
 
-        public static bool SrfCollector(Rhino.Geometry.Brep brep, out List<Rhino.Geometry.Surface> srf_List)
+        public static bool ObjColorRevise(System.Drawing.Color color, Rhino.Geometry.Brep brep, List<int> criminalIndex_List, out Rhino.Geometry.Brep newBrep)
         {
-            // Trigger Setting
-            /*
-            bool flatSrfTrigger = false;
-            bool abVertiTrigger = false;
-            bool redunCPTrigger = false;
-            bool extuCrvTrigger = false;
-            */
-            srf_List = new List<Rhino.Geometry.Surface>();
-            Rhino.Geometry.Collections.BrepFaceList brepFace_List = brep.Faces;
-            foreach (Rhino.Geometry.BrepFace brepFace in brepFace_List) 
+            newBrep = brep.DuplicateBrep();
+            foreach (int i in criminalIndex_List)
             {
-                srf_List.Add(brepFace.UnderlyingSurface());
-            }            
+                newBrep.Faces[i].PerFaceColor = color;
+            }
+
             return true;
         }
 
-        public static bool FlatSrfCheck(Rhino.Geometry.Surface srf, double modelTolerance, int enlargeRatio, out bool flatSrfTrigger) 
+        public static bool FlatSrfCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance, int enlargeRatio, out bool flatSrfTrigger) 
         {
             flatSrfTrigger = false;
             double relaviteTolerance = modelTolerance * enlargeRatio;
-            if (srf.IsPlanar(modelTolerance) == false)
+            if (bFace.IsPlanar(modelTolerance) == false)
             {
                 // RhinoApp.WriteLine("model tolerance is false");
-                if (srf.IsPlanar(relaviteTolerance) == true)
+                if (bFace.IsPlanar(relaviteTolerance) == true)
                 {
                     flatSrfTrigger = true;
                     // RhinoApp.WriteLine("relavite tolerance is true");

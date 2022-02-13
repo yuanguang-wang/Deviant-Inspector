@@ -85,5 +85,41 @@ namespace Deviant_Inspector
 
             return true;
         }
+
+        public static bool SrfCollector(Rhino.Geometry.Brep brep, out List<Rhino.Geometry.Surface> srf_List)
+        {
+            // Trigger Setting
+            /*
+            bool flatSrfTrigger = false;
+            bool abVertiTrigger = false;
+            bool redunCPTrigger = false;
+            bool extuCrvTrigger = false;
+            */
+            srf_List = new List<Rhino.Geometry.Surface>();
+            Rhino.Geometry.Collections.BrepFaceList brepFace_List = brep.Faces;
+            foreach (Rhino.Geometry.BrepFace brepFace in brepFace_List)
+            {
+                srf_List.Add(brepFace.UnderlyingSurface());
+            }
+            return true;
+        }
+
+        public static bool FaceCollector(Rhino.Geometry.Brep brep, out List<Rhino.Geometry.BrepFace> face_List)
+        {
+            // Trigger Setting
+            /*
+            bool flatSrfTrigger = false;
+            bool abVertiTrigger = false;
+            bool redunCPTrigger = false;
+            bool extuCrvTrigger = false;
+            */
+            face_List = new List<Rhino.Geometry.BrepFace>();
+            Rhino.Geometry.Collections.BrepFaceList brepFace_List = brep.Faces;
+            foreach (Rhino.Geometry.BrepFace brepFace in brepFace_List)
+            {
+                face_List.Add(brepFace);
+            }
+            return true;
+        }
     }
 }
