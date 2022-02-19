@@ -7,6 +7,16 @@ using Rhino;
 
 namespace Deviant_Inspector
 {
+    /// <summary>
+    /// Summary Info:
+    /// Brep Count: xxxxx
+    /// Brep_issue1: xxxx &%
+    /// Brep_issue2: xxxx &%
+    /// Brep_issues: xxxx &%
+    /// BrepFace Count: xxxxxx
+    /// BrepFace_issue1: xxxxx &%
+    /// BrepFace_issues: xxxxx &%
+    /// </summary>
     public class Method_Main
     {
         /// <summary>
@@ -44,19 +54,25 @@ namespace Deviant_Inspector
             return true;
         }
 
-        public static bool FlatSrfCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance, int enlargeRatio, out bool flatSrfTrigger) 
+        public static bool FlatSrfCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance, int enlargeRatio, out bool triggerFlatSrf) 
         {
-            flatSrfTrigger = false;
+            triggerFlatSrf = false;
             double relaviteTolerance = modelTolerance * enlargeRatio;
             if (bFace.IsPlanar(modelTolerance) == false)
             {
                 // RhinoApp.WriteLine("model tolerance is false");
                 if (bFace.IsPlanar(relaviteTolerance) == true)
                 {
-                    flatSrfTrigger = true;
+                    triggerFlatSrf = true;
                     // RhinoApp.WriteLine("relavite tolerance is true");
                 }
             }
+            return true;
+        }
+
+        public static bool VerticalCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance, out bool triggerVertical)
+        {
+            triggerVertical = true;
             return true;
         }
     }

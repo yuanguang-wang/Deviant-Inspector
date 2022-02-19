@@ -1,6 +1,7 @@
 ﻿using Rhino;
 using System;
 using System.Collections.Generic;
+using System.Windows.Forms;
 
 using MM = Deviant_Inspector.Method_Main;
 
@@ -10,14 +11,7 @@ namespace Deviant_Inspector
     {
 
         /// <summary>
-        /// TO-DO List aka Command Index:
-        ///     1.Absolutely Vertical (V);
-        ///     2.Redundant Control Points (P);
-        ///     3.Nearly Flat Surface (S);
-        ///     4.Unexpected Duplication (D);
-        ///     5.Run All Diagnosis (A);
-        ///     6.Rollback and Release Criminals (R);
-        ///     7.Set Criminal's Color (C);
+        /// TO-DO List
         /// </summary>
 
         public Deviant_InspectorCommand()
@@ -70,8 +64,7 @@ namespace Deviant_Inspector
             getOption.AcceptNothing(true);
 
             // Option Setting Loop
-            string[] subCommandsAry = new string[] {"On","On","On","On", "On"};
-            getOption.SetCommandPrompt("Select the Inspector to be Excuted, Press Enter When Finish Setting");
+            getOption.SetCommandPrompt("Select the Inspector to be Excuted");
             while (true)
             {
                 Rhino.Input.GetResult rc = getOption.Get();
@@ -79,6 +72,7 @@ namespace Deviant_Inspector
                 {
                 return getOption.CommandResult();
                 }
+
                 if (rc == Rhino.Input.GetResult.Nothing)
                 {
                     RhinoApp.WriteLine("Inspector Setting Finished");
@@ -86,13 +80,20 @@ namespace Deviant_Inspector
                 }
                 else if (rc == Rhino.Input.GetResult.Option)
                 {
-                    int x = getOption.OptionIndex();
-                    if (getOption.Option().StringOptionValue == "Off")
-                    {
-                        subCommandsAry[x - 1] = "Off";
-                    }
                     continue;
                 }
+            }
+
+            // All Off Toggle Exception
+            bool toggleAllValue = abVerti.CurrentValue ||
+                                  redunCP.CurrentValue ||
+                                  fltSurf.CurrentValue ||
+                                  dupBrep.CurrentValue ||
+                                  extuCrv.CurrentValue;
+            if (!toggleAllValue)
+            {
+                RhinoApp.WriteLine("[COMMAND EXIT] All Inspection is Turned off, Nothing will be Inspected");
+                return Rhino.Commands.Result.Failure;
             }
 
             // Brep Collection
@@ -100,10 +101,21 @@ namespace Deviant_Inspector
             getObjects.GetMultiple(1,0);
             if (getObjects.CommandResult() != Rhino.Commands.Result.Success)
             {
-                RhinoApp.WriteLine("GetObject Method Failure, Command Exit");
+                RhinoApp.WriteLine("[COMMAND EXIT] Nothing is Selected to be Inspected");
                 return Rhino.Commands.Result.Failure;
             }
             Rhino.DocObjects.ObjRef[] objsRef_Arry = getObjects.Objects();
+
+            // Color Set
+            bool run_Color = true;
+            run_Color = Rhino.UI.Dialogs.ShowColorDialog(ref color, true, "Select One Color to be Drawn on Deviants, Default is Red");
+            if (run_Color == false)
+            {
+                RhinoApp.WriteLine("[COMMAND EXIT] Deviant Color is not Specified");
+                return Rhino.Commands.Result.Failure;
+            }
+
+            // Totally Obj List with Brep % RhObj
             List<Rhino.Geometry.Brep> breps_List = new List<Rhino.Geometry.Brep>();
             List<Rhino.DocObjects.RhinoObject> rhObjs_List = new List<Rhino.DocObjects.RhinoObject>();
             foreach (Rhino.DocObjects.ObjRef obj in objsRef_Arry)
@@ -112,41 +124,87 @@ namespace Deviant_Inspector
                 rhObjs_List.Add(obj.Object());
             }
 
-            // Run subCommand dependently
-            foreach (string subCommand in subCommandsAry)
-            {
-                if (subCommand == "On")
-                {
+            // Summary Variable Set
+            int brepIssueCount = 0;
+            int brepCount = breps_List.Count;
 
-                }
-            }
+            int brepFlatCount = 0;
+            int faceFlatCount = 0;
+
+            //int brepVertCount = 0;
+            //int faceVertCount = 0;
 
             // Change the Color and Name
             // Iterate All rhObjs in List
             int i = 0;
             foreach (Rhino.Geometry.Brep brep in breps_List)
             {
-                List<int> criminalIndex_list = new List<int>();
+                List<int> faceFlatIndex_list = new List<int>();
+                List<int> faceVertIndex_list = new List<int>();
+                List<int> faceIssueIndex_List = new List<int>();
+                bool run_Flat = false;
+                bool run_Vert = false;
+                bool run_Rend = false;
+                bool run_Dupl = false;
+                bool run_Extu = false;
                 foreach (Rhino.Geometry.BrepFace brepFace in brep.Faces)
                 {
-                    MM.FlatSrfCheck(brepFace, modelTolerance, enlargeRatio, out bool flatSrfTrigger);
-                    if (flatSrfTrigger)
+                    if (fltSurf.CurrentValue)
                     {
-                        criminalIndex_list.Add(brepFace.FaceIndex);
+                        run_Flat = MM.FlatSrfCheck(brepFace, modelTolerance, enlargeRatio, out bool trigger_FlatSrf);
+                        if (trigger_FlatSrf)
+                        {
+                            faceFlatCount++;
+                            faceFlatIndex_list.Add(brepFace.FaceIndex);
+                            if (!faceIssueIndex_List.Contains(brepFace.FaceIndex))
+                            {
+                                faceIssueIndex_List.Add(brepFace.FaceIndex);
+                            }
+                        }
                     }
+                    
                 }
-                if (criminalIndex_list.Count != 0)
+
+                if (run_Flat)
                 {
-                    MM.ObjColorRevise(color, brep, criminalIndex_list, out Rhino.Geometry.Brep newBrep);
-                    doc.Objects.Replace(objsRef_Arry[i],newBrep);
                     MM.ObjNameRevise(rhObjs_List[i], "|NearlyFlatSurface|");
+                    brepFlatCount++;
+                }
+                if (run_Flat || run_Vert || run_Rend || run_Dupl || run_Extu)
+                {
+                    MM.ObjColorRevise(color, brep, faceIssueIndex_List, out Rhino.Geometry.Brep newBrep);
+                    doc.Objects.Replace(objsRef_Arry[i], newBrep);
+                    brepIssueCount++;
                 }
                 i++;
             }
-                
-            
 
+            // Summary Dialog Information Collection
+            string breakLine = "------------------------------------------------------ \n";
+            double brepPercent = brepIssueCount / brepCount;
+            string faceFlat_String;
+            string brepFlat_String;
+            if (faceFlatCount != 0)
+            {
+                faceFlat_String = "Faces with 'Nearly Flat Surface' Issue Count: " + faceFlatCount.ToString() + "\n";
+                brepFlat_String = "Breps with 'Nearly Flat Surface' Issue Count: " + brepFlatCount.ToString() + "\n";
+            }
+            else
+            {
+                faceFlat_String = "Faces with 'Nearly Flat Surface' Issue Count: Not Inspected" + "\n";
+                brepFlat_String = "Breps with 'Nearly Flat Surface' Issue Count: Not Inspected" + "\n";
+            }
+            string brepIssuePercentage_String = "issue brep percentage is " + brepPercent.ToString() + "%\n";
+
+            string dialogTitle = "Inspection Result";
+            
+            string dialogMessage = breakLine +
+                                   faceFlat_String +
+                                   brepFlat_String +
+                                   breakLine +
+                                   brepIssuePercentage_String;
             doc.Views.Redraw();
+            Rhino.UI.Dialogs.ShowTextDialog(dialogMessage, dialogTitle);
 
             return Rhino.Commands.Result.Success;
         }
