@@ -54,20 +54,24 @@ namespace Deviant_Inspector
             return true;
         }
 
-        public static bool FlatSrfCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance, int enlargeRatio, out bool triggerFlatSrf) 
+        public static bool FlatSrfCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance, int enlargeRatio) 
         {
-            triggerFlatSrf = false;
             double relaviteTolerance = modelTolerance * enlargeRatio;
             if (bFace.IsPlanar(modelTolerance) == false)
             {
-                // RhinoApp.WriteLine("model tolerance is false");
                 if (bFace.IsPlanar(relaviteTolerance) == true)
                 {
-                    triggerFlatSrf = true;
-                    // RhinoApp.WriteLine("relavite tolerance is true");
+                    return true;
+                }
+                else
+                {
+                    return false;
                 }
             }
-            return true;
+            else
+            {
+                return false;
+            }
         }
 
         public static bool VerticalCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance, out bool triggerVertical)

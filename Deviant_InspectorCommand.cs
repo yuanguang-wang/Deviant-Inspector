@@ -56,11 +56,11 @@ namespace Deviant_Inspector
             // Remarks on method AddOptionToggle
             // Body: str Must only consist of letters and numbers (no characters list periods, spaces, or dashes))
             // Type OptionToggle need a ref prefix
-            getOption.AddOptionToggle("Absolutely_Vertical", ref abVerti);
-            getOption.AddOptionToggle("Redundant_Control_Points", ref redunCP);
-            getOption.AddOptionToggle("Nearly_Flat_Surface", ref fltSurf);
-            getOption.AddOptionToggle("Unexpected_Duplication", ref dupBrep);
-            getOption.AddOptionToggle("Extruded_Curve_Wrong_Direction", ref extuCrv);
+            getOption.AddOptionToggle("Vertical", ref abVerti);
+            getOption.AddOptionToggle("Redundant", ref redunCP);
+            getOption.AddOptionToggle("Curled", ref fltSurf);
+            getOption.AddOptionToggle("Duplicated", ref dupBrep);
+            getOption.AddOptionToggle("Extruded", ref extuCrv);
             getOption.AcceptNothing(true);
 
             // Option Setting Loop
@@ -127,6 +127,7 @@ namespace Deviant_Inspector
             // Summary Variable Set
             int brepIssueCount = 0;
             int brepCount = breps_List.Count;
+            int faceCount = 0;
 
             int brepFlatCount = 0;
             int faceFlatCount = 0;
@@ -139,21 +140,31 @@ namespace Deviant_Inspector
             int i = 0;
             foreach (Rhino.Geometry.Brep brep in breps_List)
             {
+                faceCount += brep.Faces.Count;
+
                 List<int> faceFlatIndex_list = new List<int>();
                 List<int> faceVertIndex_list = new List<int>();
                 List<int> faceIssueIndex_List = new List<int>();
                 bool run_Flat = false;
-                bool run_Vert = false;
-                bool run_Rend = false;
-                bool run_Dupl = false;
-                bool run_Extu = false;
+                //bool run_Vert = false;
+                //bool run_Rend = false;
+                //bool run_Dupl = false;
+                //bool run_Extu = false;
+
+                bool run_FlatBrep = false;
+                bool run_VertBrep = false;
+                bool run_RendBrep = false;
+                bool run_DuplBrep = false;
+                bool run_ExtuBrep = false;
                 foreach (Rhino.Geometry.BrepFace brepFace in brep.Faces)
                 {
+                    // Flat Surface Iteration
                     if (fltSurf.CurrentValue)
                     {
-                        run_Flat = MM.FlatSrfCheck(brepFace, modelTolerance, enlargeRatio, out bool trigger_FlatSrf);
-                        if (trigger_FlatSrf)
+                        run_Flat = MM.FlatSrfCheck(brepFace, modelTolerance, enlargeRatio);
+                        if (run_Flat)
                         {
+                            run_FlatBrep = true;
                             faceFlatCount++;
                             faceFlatIndex_list.Add(brepFace.FaceIndex);
                             if (!faceIssueIndex_List.Contains(brepFace.FaceIndex))
@@ -165,45 +176,56 @@ namespace Deviant_Inspector
                     
                 }
 
-                if (run_Flat)
+                if (run_FlatBrep)
                 {
                     MM.ObjNameRevise(rhObjs_List[i], "|NearlyFlatSurface|");
                     brepFlatCount++;
                 }
-                if (run_Flat || run_Vert || run_Rend || run_Dupl || run_Extu)
+                if (run_FlatBrep || 
+                    run_VertBrep || 
+                    run_RendBrep || 
+                    run_DuplBrep || 
+                    run_ExtuBrep)
                 {
+                    brepIssueCount++;
                     MM.ObjColorRevise(color, brep, faceIssueIndex_List, out Rhino.Geometry.Brep newBrep);
                     doc.Objects.Replace(objsRef_Arry[i], newBrep);
-                    brepIssueCount++;
                 }
+
                 i++;
             }
 
             // Summary Dialog Information Collection
             string breakLine = "------------------------------------------------------ \n";
-            double brepPercent = brepIssueCount / brepCount;
+            string faceCount_String = "The Total Faces Selected Count: " + faceCount.ToString() + "\n";
+            string brepCount_String = "The Total Breps Selected Count: " + brepCount.ToString() + "\n";
+            string brepIssue_String = "Breps Have Deviant Components Count: " + brepIssueCount.ToString() + "\n";
             string faceFlat_String;
             string brepFlat_String;
             if (faceFlatCount != 0)
             {
-                faceFlat_String = "Faces with 'Nearly Flat Surface' Issue Count: " + faceFlatCount.ToString() + "\n";
-                brepFlat_String = "Breps with 'Nearly Flat Surface' Issue Count: " + brepFlatCount.ToString() + "\n";
+                faceFlat_String = "Faces with 'Curled' Issue Count: " + faceFlatCount.ToString() + "\n";
+                brepFlat_String = "Breps with 'Curled' Issue Count: " + brepFlatCount.ToString() + "\n";
             }
             else
             {
-                faceFlat_String = "Faces with 'Nearly Flat Surface' Issue Count: Not Inspected" + "\n";
-                brepFlat_String = "Breps with 'Nearly Flat Surface' Issue Count: Not Inspected" + "\n";
+                faceFlat_String = "Faces with 'Curled' Issue Count: Not Inspected" + "\n";
+                brepFlat_String = "Breps with 'Curled' Issue Count: Not Inspected" + "\n";
             }
-            string brepIssuePercentage_String = "issue brep percentage is " + brepPercent.ToString() + "%\n";
 
             string dialogTitle = "Inspection Result";
-            
+
             string dialogMessage = breakLine +
+                                   faceCount_String +
+                                   brepCount_String +
+                                   breakLine +
                                    faceFlat_String +
                                    brepFlat_String +
                                    breakLine +
-                                   brepIssuePercentage_String;
+                                   brepIssue_String +
+                                   "End of the Inspection";
             doc.Views.Redraw();
+            doc.Objects.UnselectAll();
             Rhino.UI.Dialogs.ShowTextDialog(dialogMessage, dialogTitle);
 
             return Rhino.Commands.Result.Success;
