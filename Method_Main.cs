@@ -74,10 +74,72 @@ namespace Deviant_Inspector
             }
         }
 
-        public static bool VerticalCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance, out bool triggerVertical)
+        public static bool VerticalCheck(Rhino.Geometry.BrepFace bFace, double modelTolerancel, int enlargeRatio)
         {
-            triggerVertical = true;
-            return true;
+            double relaviteTolerance = modelTolerancel * enlargeRatio;
+            Rhino.Geometry.Curve curve;
+            Rhino.Geometry.Curve curve_0 = bFace.IsoCurve(0, 0);
+            if (curve_0.IsLinear())
+            {
+                curve = curve_0;
+            }
+            else
+            {
+                Rhino.Geometry.Curve curve_1 = bFace.IsoCurve(1, 0);
+                if (curve_1.IsLinear())
+                {
+                    curve = curve_1;
+                }
+                else
+                {
+                    return false; 
+                    // Face is not an Extrusion
+                }
+            }
+            double distanceX = System.Math.Abs(curve.PointAtStart.X - curve.PointAtEnd.X);
+            double distanceY = System.Math.Abs(curve.PointAtStart.Y - curve.PointAtEnd.Y);
+            if (modelTolerancel > distanceX)
+            {
+                if (modelTolerancel > distanceY)
+                {
+                    return false;
+                    // This is a Vertical Extrusion
+                }
+                else if (relaviteTolerance > distanceY)
+                {
+                    return true;
+                    // This is an Issue
+                }
+                else
+                {
+                    return false;
+                    // This is an Intended Diagnal Extrusion
+                }
+            }
+            else if (relaviteTolerance > distanceX)
+            {
+                return true;
+            }
+            else
+            {
+                if (modelTolerancel > distanceY)
+                {
+                    return false;
+                    // This is an Intended Diagnal Extrusion
+                }
+                else if (relaviteTolerance > distanceY)
+                {
+                    return true;
+                    // This is an Issue
+                }
+                else 
+                {
+                    return false;
+                    // This is an Intended Diagnal Extrusion
+                }
+            }
         }
+
+
     }
 }

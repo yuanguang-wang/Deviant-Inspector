@@ -105,6 +105,7 @@ namespace Deviant_Inspector
                 return Rhino.Commands.Result.Failure;
             }
             Rhino.DocObjects.ObjRef[] objsRef_Arry = getObjects.Objects();
+            doc.Objects.UnselectAll();
 
             // Color Set
             bool run_Color = true;
@@ -132,8 +133,8 @@ namespace Deviant_Inspector
             int brepFlatCount = 0;
             int faceFlatCount = 0;
 
-            //int brepVertCount = 0;
-            //int faceVertCount = 0;
+            int brepVertCount = 0;
+            int faceVertCount = 0;
 
             // Change the Color and Name
             // Iterate All rhObjs in List
@@ -146,7 +147,7 @@ namespace Deviant_Inspector
                 List<int> faceVertIndex_list = new List<int>();
                 List<int> faceIssueIndex_List = new List<int>();
                 bool run_Flat = false;
-                //bool run_Vert = false;
+                bool run_Vert = false;
                 //bool run_Rend = false;
                 //bool run_Dupl = false;
                 //bool run_Extu = false;
@@ -173,19 +174,41 @@ namespace Deviant_Inspector
                             }
                         }
                     }
+                    // Vertical Surface Iteration
+                    if (abVerti.CurrentValue)
+                    {
+                        run_Vert = MM.VerticalCheck(brepFace, modelTolerance, enlargeRatio);
+                        if (run_Vert)
+                        {
+                            run_VertBrep = true;
+                            faceVertCount++;
+                            faceVertIndex_list.Add(brepFace.FaceIndex);
+                            if (!faceIssueIndex_List.Contains(brepFace.FaceIndex))
+                            {
+                                faceIssueIndex_List.Add(brepFace.FaceIndex);
+                            }
+                        }
+                    }
+                    // New Iteration Below
                     
                 }
 
                 if (run_FlatBrep)
                 {
-                    MM.ObjNameRevise(rhObjs_List[i], "|NearlyFlatSurface|");
+                    MM.ObjNameRevise(rhObjs_List[i], "|Curled|");
                     brepFlatCount++;
+                }
+                if (run_VertBrep)
+                {
+                    MM.ObjNameRevise(rhObjs_List[i], "|Vertical|");
+                    brepVertCount++;
                 }
                 if (run_FlatBrep || 
                     run_VertBrep || 
                     run_RendBrep || 
                     run_DuplBrep || 
-                    run_ExtuBrep)
+                    run_ExtuBrep
+                    )
                 {
                     brepIssueCount++;
                     MM.ObjColorRevise(color, brep, faceIssueIndex_List, out Rhino.Geometry.Brep newBrep);
@@ -200,6 +223,8 @@ namespace Deviant_Inspector
             string faceCount_String = "The Total Faces Selected Count: " + faceCount.ToString() + "\n";
             string brepCount_String = "The Total Breps Selected Count: " + brepCount.ToString() + "\n";
             string brepIssue_String = "Breps Have Deviant Components Count: " + brepIssueCount.ToString() + "\n";
+            
+            // Flat String Set
             string faceFlat_String;
             string brepFlat_String;
             if (faceFlatCount != 0)
@@ -209,12 +234,28 @@ namespace Deviant_Inspector
             }
             else
             {
-                faceFlat_String = "Faces with 'Curled' Issue Count: Not Inspected" + "\n";
-                brepFlat_String = "Breps with 'Curled' Issue Count: Not Inspected" + "\n";
+                faceFlat_String = "Faces with 'Curled' Issue Count: 0" + "\n";
+                brepFlat_String = "Breps with 'Curled' Issue Count: 0" + "\n";
             }
 
-            string dialogTitle = "Inspection Result";
+            // Vertical String Set
+            string faceVert_String;
+            string brepVert_String;
+            if (faceVertCount != 0)
+            {
+                faceVert_String = "Faces with 'Vertical' Issue Count: " + faceVertCount.ToString() + "\n";
+                brepVert_String = "Breps with 'Vertical' Issue Count: " + brepVertCount.ToString() + "\n";
+            }
+            else
+            {
+                faceVert_String = "Faces with 'Vertical' Issue Count: 0" + "\n";
+                brepVert_String = "Breps with 'Vertical' Issue Count: 0" + "\n";
+            }
 
+            // New String Set
+
+            // Dialog Set
+            string dialogTitle = "Inspection Result";
             string dialogMessage = breakLine +
                                    faceCount_String +
                                    brepCount_String +
@@ -222,10 +263,16 @@ namespace Deviant_Inspector
                                    faceFlat_String +
                                    brepFlat_String +
                                    breakLine +
+                                   faceVert_String +
+                                   brepVert_String +
+                                   breakLine +
                                    brepIssue_String +
-                                   "End of the Inspection";
+                                   "End of the Inspection\n" +
+                                   breakLine +
+                                   "[NOTE] Numbers Report 0 means:\n" +
+                                   "       1. Inspection related didn't run.\n" +
+                                   "       2. No issue found.\n";
             doc.Views.Redraw();
-            doc.Objects.UnselectAll();
             Rhino.UI.Dialogs.ShowTextDialog(dialogMessage, dialogTitle);
 
             return Rhino.Commands.Result.Success;
