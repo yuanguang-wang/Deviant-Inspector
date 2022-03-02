@@ -23,7 +23,6 @@ namespace Deviant_Inspector
 
         ///<summary>The only instance of this command.</summary>
         public static Deviant_InspectorCommand Instance { get; private set; }
-
         ///<returns>The command name as it appears on the Rhino command line.</returns>
         public override string EnglishName => "Deviantinspector";
 
@@ -146,8 +145,8 @@ namespace Deviant_Inspector
                 List<int> faceFlatIndex_list = new List<int>();
                 List<int> faceVertIndex_list = new List<int>();
                 List<int> faceIssueIndex_List = new List<int>();
-                bool run_Flat = false;
-                bool run_Vert = false;
+                bool run_FlatFace = false;
+                bool run_VertFace = false;
                 //bool run_Rend = false;
                 //bool run_Dupl = false;
                 //bool run_Extu = false;
@@ -162,8 +161,8 @@ namespace Deviant_Inspector
                     // Flat Surface Iteration
                     if (fltSurf.CurrentValue)
                     {
-                        run_Flat = MM.FlatSrfCheck(brepFace, modelTolerance, enlargeRatio);
-                        if (run_Flat)
+                        run_FlatFace = MM.FlatSrfCheck(brepFace, modelTolerance, enlargeRatio);
+                        if (run_FlatFace)
                         {
                             run_FlatBrep = true;
                             faceFlatCount++;
@@ -177,8 +176,8 @@ namespace Deviant_Inspector
                     // Vertical Surface Iteration
                     if (abVerti.CurrentValue)
                     {
-                        run_Vert = MM.VerticalCheck(brepFace, modelTolerance, enlargeRatio);
-                        if (run_Vert)
+                        run_VertFace = MM.VerticalCheck(brepFace, modelTolerance, enlargeRatio);
+                        if (run_VertFace)
                         {
                             run_VertBrep = true;
                             faceVertCount++;
@@ -277,5 +276,6 @@ namespace Deviant_Inspector
 
             return Rhino.Commands.Result.Success;
         }
+
     }
 }
