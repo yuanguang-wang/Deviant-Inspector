@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Rhino;
 
 
 namespace Deviant_Inspector
@@ -133,54 +132,50 @@ namespace Deviant_Inspector
             }
         }
 
-        public static bool ExtrudeCheck(Rhino.Geometry.Curve[] crvSegs, double modelTolerance)
+        public static bool ExtrudeCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance)
         {
-            List<double> distance_List = new List<double>();
+            Rhino.Geometry.Curve[] crvSegs = bFace.OuterLoop.To3dCurve().DuplicateSegments();
+            if (crvSegs.Length <= 2)
+            {
+                return false;
+            }
+
+            // Point of the Outer Loop Collection
+            double modelToleranceSquare = modelTolerance * modelTolerance;
             List<Rhino.Geometry.Point3d> pt_List = new List<Rhino.Geometry.Point3d>();
-            // Query Max Distance
+            Rhino.Geometry.Curve segLast = crvSegs.Last();
+            Rhino.Geometry.Point3d ptBase = segLast.PointAtEnd;
+            pt_List.Add(ptBase);
             foreach (Rhino.Geometry.Curve segment in crvSegs)
             {
-                Rhino.Geometry.Point3d startPt = segment.PointAtStart;
-                pt_List.Add(startPt);
                 Rhino.Geometry.Point3d endPt = segment.PointAtEnd;
-                pt_List.Add(endPt);
-                distance_List.Add(startPt.DistanceToSquared(endPt));
-            }           
-            int segmentIndex = distance_List.IndexOf(distance_List.Max());
-            Rhino.Geometry.Curve crvLongest = crvSegs[segmentIndex];
+                foreach (Rhino.Geometry.Point3d pt in pt_List)
+                {
+                    double distance = endPt.DistanceToSquared(pt);
+                    if (distance > modelToleranceSquare)
+                    {
+                        pt_List.Add(endPt);
+                    }
+                }
+            }
+
+            // Make Base-Line to Test whether Every Points in Collection is Co-Linar 
+            Rhino.Geometry.Point3d ptFirst = pt_List.First();
+            Rhino.Geometry.Line lineLongest = new Rhino.Geometry.Line(ptFirst, ptBase);
             foreach (Rhino.Geometry.Point3d pt in pt_List)
             {
-                crvLongest.ClosestPoint(pt, out double t);
-                Rhino.Geometry.Point3d ptOnCrv = crvLongest.PointAt(t);
-                double distance = ptOnCrv.DistanceToSquared(pt);
-                double tolerance = modelTolerance * modelTolerance;
-                if (distance > tolerance)
+                Rhino.Geometry.Point3d ptProjected = lineLongest.ClosestPoint(pt,false);
+                double distance = pt.DistanceToSquared(ptProjected);
+                if (distance > modelToleranceSquare)
                 {
-                    return false;                   
+                    return false;
                 }
             }
             return true;
         }
 
-        public static bool ExtrudeDoubleCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance)
-        {
-            Rhino.Geometry.Curve[] crvSegs = bFace.OuterLoop.To3dCurve().DuplicateSegments();
-            if (crvSegs.Length < 2)
-            {
-                // Fail Safe;
-                return false;
-            }
-            Rhino.Geometry.Curve[] crvSegsSliced = crvSegs.Take(2).ToArray();
-            bool preCheck = Method_Main.ExtrudeCheck(crvSegsSliced, modelTolerance);
-            if (preCheck)
-            {
-                bool fullCheck = Method_Main.ExtrudeCheck(crvSegs, modelTolerance);
-                if (fullCheck)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
+
+
+
     }
 }

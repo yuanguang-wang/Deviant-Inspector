@@ -277,5 +277,10 @@ namespace Deviant_Inspector
             return Rhino.Commands.Result.Success;
         }
 
+        public static string Summary()
+        {
+            return "test";
+        }
+
     }
 }

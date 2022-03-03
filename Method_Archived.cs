@@ -121,5 +121,67 @@ namespace Deviant_Inspector
             }
             return true;
         }
+
+        public static bool ExtrudeCheck(Rhino.Geometry.Curve[] crvSegs, double modelTolerance)
+        {
+
+            double modelToleranceSquare = modelTolerance * modelTolerance;
+            List<Rhino.Geometry.Point3d> pt_List = new List<Rhino.Geometry.Point3d>();
+            Rhino.Geometry.Curve segLast = crvSegs.Last();
+            Rhino.Geometry.Point3d ptBase = segLast.PointAtEnd;
+            pt_List.Add(ptBase);
+            // Query Max Distance
+            foreach (Rhino.Geometry.Curve segment in crvSegs)
+            {
+                Rhino.Geometry.Point3d endPt = segment.PointAtEnd;
+                foreach (Rhino.Geometry.Point3d pt in pt_List)
+                {
+                    double distance = endPt.DistanceToSquared(pt);
+                    if (distance > modelToleranceSquare)
+                    {
+                        pt_List.Add(endPt);
+                    }
+                }
+            }
+            Rhino.Geometry.Point3d ptLast = pt_List.Last();
+            double distanceMax = ptLast.DistanceToSquared(ptBase);
+            Rhino.Geometry.Point3d ptLongestStart = ptBase;
+            Rhino.Geometry.Point3d ptLongestEnd = ptLast;
+            foreach (Rhino.Geometry.Point3d pt_i in pt_List)
+            {
+                foreach (Rhino.Geometry.Point3d pt_j in pt_List)
+                {
+                    double distance = pt_i.DistanceToSquared(pt_j);
+                    if (distance > distanceMax)
+                    {
+                        distanceMax = distance;
+                        ptLongestStart = pt_i;
+                        ptLongestEnd = pt_j;
+                    }
+                }
+            }
+            return true;
+        }
+
+        public static bool ExtrudeDoubleCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance)
+        {
+            Rhino.Geometry.Curve[] crvSegs = bFace.OuterLoop.To3dCurve().DuplicateSegments();
+            if (crvSegs.Length < 2)
+            {
+                // Fail Safe;
+                return false;
+            }
+            Rhino.Geometry.Curve[] crvSegsSliced = crvSegs.Take(2).ToArray();
+            bool preCheck = Method_Archived.ExtrudeCheck(crvSegsSliced, modelTolerance);
+            if (preCheck)
+            {
+                bool fullCheck = Method_Archived.ExtrudeCheck(crvSegs, modelTolerance);
+                if (fullCheck)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }
