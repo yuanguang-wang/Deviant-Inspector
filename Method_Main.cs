@@ -140,29 +140,32 @@ namespace Deviant_Inspector
                 return false;
             }
 
-            // Point of the Outer Loop Collection
+            // Point of the Outer Loop Collection //////////////////////////////////////////
             double modelToleranceSquare = modelTolerance * modelTolerance;
             List<Rhino.Geometry.Point3d> pt_List = new List<Rhino.Geometry.Point3d>();
+            List<Rhino.Geometry.Point3d> ptCulled_List = new List<Rhino.Geometry.Point3d>();
             Rhino.Geometry.Curve segLast = crvSegs.Last();
             Rhino.Geometry.Point3d ptBase = segLast.PointAtEnd;
             pt_List.Add(ptBase);
+            ptCulled_List.Add(ptBase);
             foreach (Rhino.Geometry.Curve segment in crvSegs)
             {
                 Rhino.Geometry.Point3d endPt = segment.PointAtEnd;
-                foreach (Rhino.Geometry.Point3d pt in pt_List)
+                pt_List.Add(endPt);
+            }
+            foreach (Rhino.Geometry.Point3d pt in pt_List)
+            {
+                double distance = pt.DistanceToSquared(ptBase);
+                if (distance > modelToleranceSquare)
                 {
-                    double distance = endPt.DistanceToSquared(pt);
-                    if (distance > modelToleranceSquare)
-                    {
-                        pt_List.Add(endPt);
-                    }
+                    ptCulled_List.Add(pt);
                 }
             }
 
-            // Make Base-Line to Test whether Every Points in Collection is Co-Linar 
-            Rhino.Geometry.Point3d ptFirst = pt_List.First();
+            // Make Base-Line to Test whether Every Points in Collection is Co-Linar ///////
+            Rhino.Geometry.Point3d ptFirst = ptCulled_List.First();
             Rhino.Geometry.Line lineLongest = new Rhino.Geometry.Line(ptFirst, ptBase);
-            foreach (Rhino.Geometry.Point3d pt in pt_List)
+            foreach (Rhino.Geometry.Point3d pt in ptCulled_List)
             {
                 Rhino.Geometry.Point3d ptProjected = lineLongest.ClosestPoint(pt,false);
                 double distance = pt.DistanceToSquared(ptProjected);

@@ -28,7 +28,7 @@ namespace Deviant_Inspector
 
         protected override Rhino.Commands.Result RunCommand(RhinoDoc doc, Rhino.Commands.RunMode mode)
         {
-            // Initiation
+            // Initiation ///////////////////////////////////////////////////////////////////////////////////////
             Rhino.Input.Custom.GetOption getOption = new Rhino.Input.Custom.GetOption();
             Rhino.Input.Custom.GetObject getObjects = new Rhino.Input.Custom.GetObject 
             {
@@ -40,7 +40,7 @@ namespace Deviant_Inspector
             int enlargeRatio = 100;
             System.Drawing.Color color = System.Drawing.Color.Red;
 
-            // Set Options
+            // Set Options///////////////////////////////////////////////////////////////////////////////////////
             //Target: Rhino.Geometry.Surface
             Rhino.Input.Custom.OptionToggle abVerti = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             //Target: Rhino.Geometry.Surface
@@ -62,7 +62,7 @@ namespace Deviant_Inspector
             getOption.AddOptionToggle("Extruded", ref extuCrv);
             getOption.AcceptNothing(true);
 
-            // Option Setting Loop
+            // Option Setting Loop ////////////////////////////////////////////////////////////////////////
             getOption.SetCommandPrompt("Select the Inspector to be Excuted");
             while (true)
             {
@@ -83,7 +83,7 @@ namespace Deviant_Inspector
                 }
             }
 
-            // All Off Toggle Exception
+            // All Off Toggle Exception ///////////////////////////////////////////////////////////////////
             bool toggleAllValue = abVerti.CurrentValue ||
                                   redunCP.CurrentValue ||
                                   fltSurf.CurrentValue ||
@@ -95,7 +95,7 @@ namespace Deviant_Inspector
                 return Rhino.Commands.Result.Failure;
             }
 
-            // Brep Collection
+            // Brep Collection ////////////////////////////////////////////////////////////////////////////
             getObjects.SetCommandPrompt("Select the B-Reps to be Inspected");
             getObjects.GetMultiple(1,0);
             if (getObjects.CommandResult() != Rhino.Commands.Result.Success)
@@ -106,16 +106,16 @@ namespace Deviant_Inspector
             Rhino.DocObjects.ObjRef[] objsRef_Arry = getObjects.Objects();
             doc.Objects.UnselectAll();
 
-            // Color Set
-            bool run_Color = true;
-            run_Color = Rhino.UI.Dialogs.ShowColorDialog(ref color, true, "Select One Color to be Drawn on Deviants, Default is Red");
-            if (run_Color == false)
+            // Color Set ///////////////////////////////////////////////////////////////////////////////////
+            bool result_Color = true;
+            result_Color = Rhino.UI.Dialogs.ShowColorDialog(ref color, true, "Select One Color to be Drawn on Deviants, Default is Red");
+            if (result_Color == false)
             {
                 RhinoApp.WriteLine("[COMMAND EXIT] Deviant Color is not Specified");
                 return Rhino.Commands.Result.Failure;
             }
 
-            // Totally Obj List with Brep % RhObj
+            // Totally Obj List with Brep % RhObj ///////////////////////////////////////////////////////////
             List<Rhino.Geometry.Brep> breps_List = new List<Rhino.Geometry.Brep>();
             List<Rhino.DocObjects.RhinoObject> rhObjs_List = new List<Rhino.DocObjects.RhinoObject>();
             foreach (Rhino.DocObjects.ObjRef obj in objsRef_Arry)
@@ -124,7 +124,7 @@ namespace Deviant_Inspector
                 rhObjs_List.Add(obj.Object());
             }
 
-            // Summary Variable Set
+            // Summary Variable Set /////////////////////////////////////////////////////////////////////////
             int brepIssueCount = 0;
             int brepCount = breps_List.Count;
             int faceCount = 0;
@@ -135,82 +135,92 @@ namespace Deviant_Inspector
             int brepVertCount = 0;
             int faceVertCount = 0;
 
-            // Change the Color and Name
-            // Iterate All rhObjs in List
+            // Change the Color and Name ////////////////////////////////////////////////////////////////////
+            // Iterate All rhObjs in List ///////////////////////////////////////////////////////////////////
             int i = 0;
             foreach (Rhino.Geometry.Brep brep in breps_List)
             {
                 faceCount += brep.Faces.Count;
 
-                List<int> faceFlatIndex_list = new List<int>();
-                List<int> faceVertIndex_list = new List<int>();
-                List<int> faceIssueIndex_List = new List<int>();
-                bool run_FlatFace = false;
-                bool run_VertFace = false;
-                //bool run_Rend = false;
-                //bool run_Dupl = false;
-                //bool run_Extu = false;
+                List<int> facesIssueIndex_List = new List<int>();
 
-                bool run_FlatBrep = false;
-                bool run_VertBrep = false;
-                bool run_RendBrep = false;
-                bool run_DuplBrep = false;
-                bool run_ExtuBrep = false;
+                bool result_FlatBrep = false;
+                bool result_VertBrep = false;
+                bool result_RendBrep = false;
+                bool result_DuplBrep = false;
+                bool result_ExtuBrep = false;
                 foreach (Rhino.Geometry.BrepFace brepFace in brep.Faces)
                 {
-                    // Flat Surface Iteration
+                    // Flat Surface Iteration //////////////////////////
                     if (fltSurf.CurrentValue)
                     {
-                        run_FlatFace = MM.FlatSrfCheck(brepFace, modelTolerance, enlargeRatio);
-                        if (run_FlatFace)
+                        bool result_FlatFace = MM.FlatSrfCheck(brepFace, modelTolerance, enlargeRatio);
+                        if (result_FlatFace)
                         {
-                            run_FlatBrep = true;
+                            result_FlatBrep = true;
                             faceFlatCount++;
-                            faceFlatIndex_list.Add(brepFace.FaceIndex);
-                            if (!faceIssueIndex_List.Contains(brepFace.FaceIndex))
+                            if (!facesIssueIndex_List.Contains(brepFace.FaceIndex))
                             {
-                                faceIssueIndex_List.Add(brepFace.FaceIndex);
+                                facesIssueIndex_List.Add(brepFace.FaceIndex);
                             }
                         }
                     }
-                    // Vertical Surface Iteration
+                    // Vertical Surface Iteration //////////////////////
                     if (abVerti.CurrentValue)
                     {
-                        run_VertFace = MM.VerticalCheck(brepFace, modelTolerance, enlargeRatio);
-                        if (run_VertFace)
+                        bool result_VertFace = MM.VerticalCheck(brepFace, modelTolerance, enlargeRatio);
+                        if (result_VertFace)
                         {
-                            run_VertBrep = true;
+                            result_VertBrep = true;
                             faceVertCount++;
-                            faceVertIndex_list.Add(brepFace.FaceIndex);
-                            if (!faceIssueIndex_List.Contains(brepFace.FaceIndex))
+                            if (!facesIssueIndex_List.Contains(brepFace.FaceIndex))
                             {
-                                faceIssueIndex_List.Add(brepFace.FaceIndex);
+                                facesIssueIndex_List.Add(brepFace.FaceIndex);
                             }
                         }
                     }
-                    // New Iteration Below
-                    
+                    // Extruded Surface Iteration //////////////////////
+                    if (extuCrv.CurrentValue)
+                    {
+                        bool result_ExtuFace = MM.ExtrudeCheck(brepFace, modelTolerance);
+                        if (result_ExtuFace)
+                        {
+                            result_ExtuBrep = true;
+
+                            if (!facesIssueIndex_List.Contains(brepFace.FaceIndex))
+                            {
+                                facesIssueIndex_List.Add(brepFace.FaceIndex);
+                            }
+                        }
+                    }
+                    // New Iteration Below /////////////////////////////////
+
                 }
 
-                if (run_FlatBrep)
+                if (result_FlatBrep)
                 {
                     MM.ObjNameRevise(rhObjs_List[i], "|Curled|");
                     brepFlatCount++;
                 }
-                if (run_VertBrep)
+                if (result_VertBrep)
                 {
                     MM.ObjNameRevise(rhObjs_List[i], "|Vertical|");
                     brepVertCount++;
                 }
-                if (run_FlatBrep || 
-                    run_VertBrep || 
-                    run_RendBrep || 
-                    run_DuplBrep || 
-                    run_ExtuBrep
+                if (result_ExtuBrep)
+                {
+                    MM.ObjNameRevise(rhObjs_List[i], "|Extruded|");
+                    brepVertCount++; //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                }
+                if (result_FlatBrep || 
+                    result_VertBrep || 
+                    result_RendBrep || 
+                    result_DuplBrep || 
+                    result_ExtuBrep
                     )
                 {
                     brepIssueCount++;
-                    MM.ObjColorRevise(color, brep, faceIssueIndex_List, out Rhino.Geometry.Brep newBrep);
+                    MM.ObjColorRevise(color, brep, facesIssueIndex_List, out Rhino.Geometry.Brep newBrep);
                     doc.Objects.Replace(objsRef_Arry[i], newBrep);
                 }
 
@@ -269,16 +279,20 @@ namespace Deviant_Inspector
                                    "End of the Inspection\n" +
                                    breakLine +
                                    "[NOTE] Numbers Report 0 means:\n" +
-                                   "       1. Inspection related didn't run.\n" +
+                                   "       1. Inspection related didn't result.\n" +
                                    "       2. No issue found.\n";
             doc.Views.Redraw();
             Rhino.UI.Dialogs.ShowTextDialog(dialogMessage, dialogTitle);
-
+        
             return Rhino.Commands.Result.Success;
         }
 
-        public static string Summary()
+
+        public string Summary()
         {
+            //int faceCriminalCount = 0;
+            //int brepCriminalCOunt = 0;
+
             return "test";
         }
 

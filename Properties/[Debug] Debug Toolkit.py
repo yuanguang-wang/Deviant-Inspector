@@ -4,13 +4,14 @@ import System
 import rhinoscriptsyntax as rs
 
 def test_command():
-    srf = rs.GetObject()
-    srf = rs.coercebrep(srf)
-    print(type(srf))
-    loop = srf.Faces[0].OuterLoop.To3dCurve()
-    sc.doc.Objects.AddCurve(loop)
+    pt1 = rs.coerce3dpoint(rs.GetPoint("pt1"))
+    pt2 = rs.coerce3dpoint(rs.GetPoint("pt2"))
+    pt3 = rs.coerce3dpoint(rs.GetPoint("pt3"))
+    line = Rhino.Geometry.Line(pt1, pt2)
+    pt4 = line.ClosestPoint(pt3, False)
+    sc.doc.Objects.AddPoint(pt4)
     sc.doc.Views.Redraw()
-    #Rhino.UI.Dialogs.ShowMessageBox("Inspection Result", "Nearly Flat Surface Count: 250")
+    Rhino.Geometry.Brep.Vertices
 
 
 
