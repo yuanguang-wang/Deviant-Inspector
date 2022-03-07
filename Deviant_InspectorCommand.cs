@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 
-using MM = Deviant_Inspector.Method_Main;
 
 namespace Deviant_Inspector
 {
@@ -36,20 +35,22 @@ namespace Deviant_Inspector
                 GroupSelect = true,
                 SubObjectSelect = false
             };
-            double modelTolerance = doc.ModelAbsoluteTolerance;
-            int enlargeRatio = 100;
+
             System.Drawing.Color color = System.Drawing.Color.Red;
 
+            // MM Instance Initiation ///////////////////////////////////////////////////////////////////////////
+            Deviant_Inspector.Method_Main mm = new Method_Main
+            {
+                ModelTolerance = doc.ModelAbsoluteTolerance,
+                EnlargeRatio = 100,
+                Color = color
+            };
+
             // Set Options///////////////////////////////////////////////////////////////////////////////////////
-            //Target: Rhino.Geometry.Surface
             Rhino.Input.Custom.OptionToggle abVerti = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
-            //Target: Rhino.Geometry.Surface
             Rhino.Input.Custom.OptionToggle redunCP = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
-            //Target: Rhino.Geometry.Surface
             Rhino.Input.Custom.OptionToggle fltSurf = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
-            //Target: Rhino.Geometry.Brep
             Rhino.Input.Custom.OptionToggle dupBrep = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
-            //Target: Rhino.Geometry.Surface
             Rhino.Input.Custom.OptionToggle extuCrv = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
 
             // Remarks on method AddOptionToggle
@@ -63,7 +64,7 @@ namespace Deviant_Inspector
             getOption.AcceptNothing(true);
 
             // Option Setting Loop ////////////////////////////////////////////////////////////////////////
-            getOption.SetCommandPrompt("Select the Inspector to be Excuted");
+            getOption.SetCommandPrompt("Select the Inspection to be Excuted");
             while (true)
             {
                 Rhino.Input.GetResult rc = getOption.Get();
@@ -74,7 +75,7 @@ namespace Deviant_Inspector
 
                 if (rc == Rhino.Input.GetResult.Nothing)
                 {
-                    RhinoApp.WriteLine("Inspector Setting Finished");
+                    RhinoApp.WriteLine("Inspection Setting Finished");
                     break;
                 }
                 else if (rc == Rhino.Input.GetResult.Option)
@@ -154,7 +155,7 @@ namespace Deviant_Inspector
                     // Flat Surface Iteration //////////////////////////
                     if (fltSurf.CurrentValue)
                     {
-                        bool result_FlatFace = MM.FlatSrfCheck(brepFace, modelTolerance, enlargeRatio);
+                        bool result_FlatFace = mm.FlatSrfCheck(brepFace);
                         if (result_FlatFace)
                         {
                             result_FlatBrep = true;
@@ -168,7 +169,7 @@ namespace Deviant_Inspector
                     // Vertical Surface Iteration //////////////////////
                     if (abVerti.CurrentValue)
                     {
-                        bool result_VertFace = MM.VerticalCheck(brepFace, modelTolerance, enlargeRatio);
+                        bool result_VertFace = mm.VerticalCheck(brepFace);
                         if (result_VertFace)
                         {
                             result_VertBrep = true;
@@ -182,7 +183,7 @@ namespace Deviant_Inspector
                     // Extruded Surface Iteration //////////////////////
                     if (extuCrv.CurrentValue)
                     {
-                        bool result_ExtuFace = MM.ExtrudeCheck(brepFace, modelTolerance);
+                        bool result_ExtuFace = mm.ExtrudeCheck(brepFace);
                         if (result_ExtuFace)
                         {
                             result_ExtuBrep = true;
@@ -199,17 +200,17 @@ namespace Deviant_Inspector
 
                 if (result_FlatBrep)
                 {
-                    MM.ObjNameRevise(rhObjs_List[i], "|Curled|");
+                    mm.ObjNameRevise(rhObjs_List[i], "|Curled|");
                     brepFlatCount++;
                 }
                 if (result_VertBrep)
                 {
-                    MM.ObjNameRevise(rhObjs_List[i], "|Vertical|");
+                    mm.ObjNameRevise(rhObjs_List[i], "|Vertical|");
                     brepVertCount++;
                 }
                 if (result_ExtuBrep)
                 {
-                    MM.ObjNameRevise(rhObjs_List[i], "|Extruded|");
+                    mm.ObjNameRevise(rhObjs_List[i], "|Extruded|");
                     brepVertCount++; //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 }
                 if (result_FlatBrep || 
@@ -220,7 +221,7 @@ namespace Deviant_Inspector
                     )
                 {
                     brepIssueCount++;
-                    MM.ObjColorRevise(color, brep, facesIssueIndex_List, out Rhino.Geometry.Brep newBrep);
+                    mm.ObjColorRevise(brep, facesIssueIndex_List, out Rhino.Geometry.Brep newBrep);
                     doc.Objects.Replace(objsRef_Arry[i], newBrep);
                 }
 
@@ -288,8 +289,9 @@ namespace Deviant_Inspector
         }
 
 
-        public string Summary()
+        public string Summary(string accusation)
         {
+            //string breakLine = "------------------------------------------------------ \n";
             //int faceCriminalCount = 0;
             //int brepCriminalCOunt = 0;
 

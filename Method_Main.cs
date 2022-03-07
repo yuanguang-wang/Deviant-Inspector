@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 
+
 namespace Deviant_Inspector
 {
     /// <summary>
@@ -16,8 +17,14 @@ namespace Deviant_Inspector
         /// <param name="rhObj">Rhino.DocObjects.RhinoObject</param>
         /// <param name="newName">System.String</param>
         /// <returns>returns true if worked, use #Rhino.DocObjects.RhinoObject.CommitChange# </returns>
+        
+        // Public Attributes //////////////////////////////////////////////////////////////////////////
+        public double ModelTolerance { get; set; }
+        public int EnlargeRatio { get; set; }
+        public System.Drawing.Color Color { get; set; }
 
-        public static bool ObjNameRevise(Rhino.DocObjects.RhinoObject rhObj, string newName)
+        // Static Methods /////////////////////////////////////////////////////////////////////////////
+        public bool ObjNameRevise(Rhino.DocObjects.RhinoObject rhObj, string newName)
         {
             //Name Revision
             if (rhObj.Attributes.Name == null)
@@ -35,21 +42,21 @@ namespace Deviant_Inspector
             return true;
         }
 
-        public static bool ObjColorRevise(System.Drawing.Color color, Rhino.Geometry.Brep brep, List<int> criminalIndex_List, out Rhino.Geometry.Brep newBrep)
+        public bool ObjColorRevise(Rhino.Geometry.Brep brep, List<int> criminalIndex_List, out Rhino.Geometry.Brep newBrep)
         {
             newBrep = brep.DuplicateBrep();
             foreach (int i in criminalIndex_List)
             {
-                newBrep.Faces[i].PerFaceColor = color;
+                newBrep.Faces[i].PerFaceColor = this.Color;
             }
 
             return true;
         }
 
-        public static bool FlatSrfCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance, int enlargeRatio) 
+        public bool FlatSrfCheck(Rhino.Geometry.BrepFace bFace) 
         {
-            double relaviteTolerance = modelTolerance * enlargeRatio;
-            if (bFace.IsPlanar(modelTolerance) == false)
+            double relaviteTolerance = this.ModelTolerance * this.EnlargeRatio;
+            if (bFace.IsPlanar(this.ModelTolerance) == false)
             {
                 if (bFace.IsPlanar(relaviteTolerance) == true)
                 {
@@ -66,9 +73,9 @@ namespace Deviant_Inspector
             }
         }
 
-        public static bool VerticalCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance, int enlargeRatio)
+        public bool VerticalCheck(Rhino.Geometry.BrepFace bFace)
         {
-            double relaviteTolerance = modelTolerance * enlargeRatio;
+            double relaviteTolerance = this.ModelTolerance * this.EnlargeRatio;
             Rhino.Geometry.Curve curve;
             Rhino.Geometry.Curve curve_0 = bFace.IsoCurve(0, 0);
             if (curve_0.IsLinear())
@@ -90,9 +97,9 @@ namespace Deviant_Inspector
             }
             double distanceX = System.Math.Abs(curve.PointAtStart.X - curve.PointAtEnd.X);
             double distanceY = System.Math.Abs(curve.PointAtStart.Y - curve.PointAtEnd.Y);
-            if (modelTolerance > distanceX)
+            if (this.ModelTolerance > distanceX)
             {
-                if (modelTolerance > distanceY)
+                if (this.ModelTolerance > distanceY)
                 {
                     return false;
                     // This is a Vertical Extrusion
@@ -114,7 +121,7 @@ namespace Deviant_Inspector
             }
             else
             {
-                if (modelTolerance > distanceY)
+                if (this.ModelTolerance > distanceY)
                 {
                     return false;
                     // This is an Intended Diagnal Extrusion
@@ -132,8 +139,9 @@ namespace Deviant_Inspector
             }
         }
 
-        public static bool ExtrudeCheck(Rhino.Geometry.BrepFace bFace, double modelTolerance)
+        public bool ExtrudeCheck(Rhino.Geometry.BrepFace bFace)
         {
+            // Avoiding Bad Objects ////////////////////////////////////////////////////////
             Rhino.Geometry.Curve[] crvSegs = bFace.OuterLoop.To3dCurve().DuplicateSegments();
             if (crvSegs.Length <= 2)
             {
@@ -141,42 +149,27 @@ namespace Deviant_Inspector
             }
 
             // Point of the Outer Loop Collection //////////////////////////////////////////
-            double modelToleranceSquare = modelTolerance * modelTolerance;
+            double modelToleranceSquare = this.ModelTolerance * this.ModelTolerance;
             List<Rhino.Geometry.Point3d> pt_List = new List<Rhino.Geometry.Point3d>();
-            List<Rhino.Geometry.Point3d> ptCulled_List = new List<Rhino.Geometry.Point3d>();
-            Rhino.Geometry.Curve segLast = crvSegs.Last();
-            Rhino.Geometry.Point3d ptBase = segLast.PointAtEnd;
-            pt_List.Add(ptBase);
-            ptCulled_List.Add(ptBase);
             foreach (Rhino.Geometry.Curve segment in crvSegs)
             {
-                Rhino.Geometry.Point3d endPt = segment.PointAtEnd;
-                pt_List.Add(endPt);
-            }
-            foreach (Rhino.Geometry.Point3d pt in pt_List)
-            {
-                double distance = pt.DistanceToSquared(ptBase);
-                if (distance > modelToleranceSquare)
-                {
-                    ptCulled_List.Add(pt);
-                }
+                pt_List.Add(segment.PointAtEnd);
             }
 
-            // Make Base-Line to Test whether Every Points in Collection is Co-Linar ///////
-            Rhino.Geometry.Point3d ptFirst = ptCulled_List.First();
-            Rhino.Geometry.Line lineLongest = new Rhino.Geometry.Line(ptFirst, ptBase);
-            foreach (Rhino.Geometry.Point3d pt in ptCulled_List)
+            // Projection Test /////////////////////////////////////////////////////////////
+            Rhino.Geometry.Line baseLine = new Rhino.Geometry.Line(pt_List[0], pt_List[1]);
+            foreach (Rhino.Geometry.Point3d pt in pt_List)
             {
-                Rhino.Geometry.Point3d ptProjected = lineLongest.ClosestPoint(pt,false);
+                Rhino.Geometry.Point3d ptProjected = baseLine.ClosestPoint(pt, false);
                 double distance = pt.DistanceToSquared(ptProjected);
                 if (distance > modelToleranceSquare)
                 {
                     return false;
                 }
             }
+
             return true;
         }
-
 
 
 
