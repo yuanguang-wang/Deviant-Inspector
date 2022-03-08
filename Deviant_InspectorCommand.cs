@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Linq;
 
 
 namespace Deviant_Inspector
@@ -125,16 +126,16 @@ namespace Deviant_Inspector
                 rhObjs_List.Add(obj.Object());
             }
 
-            // Summary Variable Set /////////////////////////////////////////////////////////////////////////
+            // Summary Initiation ///////////////////////////////////////////////////////////////////////////
             int brepIssueCount = 0;
+            int faceIssueCount = 0;
+            
             int brepCount = breps_List.Count;
             int faceCount = 0;
 
-            int brepFlatCount = 0;
-            int faceFlatCount = 0;
-
-            int brepVertCount = 0;
-            int faceVertCount = 0;
+            Deviant_Inspector.Summary extrusion_Summary = new Summary("Extrusion");
+            Deviant_Inspector.Summary curl_Summary = new Summary("Curl");
+            Deviant_Inspector.Summary vertical_Summary = new Summary("Vertical");
 
             // Change the Color and Name ////////////////////////////////////////////////////////////////////
             // Iterate All rhObjs in List ///////////////////////////////////////////////////////////////////
@@ -142,14 +143,14 @@ namespace Deviant_Inspector
             foreach (Rhino.Geometry.Brep brep in breps_List)
             {
                 faceCount += brep.Faces.Count;
-
-                List<int> facesIssueIndex_List = new List<int>();
+                List<int> facesCriminalIndex_List = new List<int>();
 
                 bool result_FlatBrep = false;
                 bool result_VertBrep = false;
                 bool result_RendBrep = false;
                 bool result_DuplBrep = false;
-                bool result_ExtuBrep = false;
+                bool result_ExtrBrep = false;
+
                 foreach (Rhino.Geometry.BrepFace brepFace in brep.Faces)
                 {
                     // Flat Surface Iteration //////////////////////////
@@ -159,11 +160,8 @@ namespace Deviant_Inspector
                         if (result_FlatFace)
                         {
                             result_FlatBrep = true;
-                            faceFlatCount++;
-                            if (!facesIssueIndex_List.Contains(brepFace.FaceIndex))
-                            {
-                                facesIssueIndex_List.Add(brepFace.FaceIndex);
-                            }
+                            curl_Summary.faceCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
                         }
                     }
                     // Vertical Surface Iteration //////////////////////
@@ -173,11 +171,8 @@ namespace Deviant_Inspector
                         if (result_VertFace)
                         {
                             result_VertBrep = true;
-                            faceVertCount++;
-                            if (!facesIssueIndex_List.Contains(brepFace.FaceIndex))
-                            {
-                                facesIssueIndex_List.Add(brepFace.FaceIndex);
-                            }
+                            vertical_Summary.faceCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
                         }
                     }
                     // Extruded Surface Iteration //////////////////////
@@ -186,102 +181,71 @@ namespace Deviant_Inspector
                         bool result_ExtuFace = mm.ExtrudeCheck(brepFace);
                         if (result_ExtuFace)
                         {
-                            result_ExtuBrep = true;
-
-                            if (!facesIssueIndex_List.Contains(brepFace.FaceIndex))
-                            {
-                                facesIssueIndex_List.Add(brepFace.FaceIndex);
-                            }
+                            result_ExtrBrep = true;
+                            extrusion_Summary.faceCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
                         }
                     }
-                    // New Iteration Below /////////////////////////////////
+                    // New Iteration Below /////////////////////////////
 
                 }
 
                 if (result_FlatBrep)
                 {
-                    mm.ObjNameRevise(rhObjs_List[i], "|Curled|");
-                    brepFlatCount++;
+                    mm.ObjNameRevise(rhObjs_List[i], curl_Summary.accusationObjName);
+                    curl_Summary.brepCriminalCount++;
                 }
                 if (result_VertBrep)
                 {
-                    mm.ObjNameRevise(rhObjs_List[i], "|Vertical|");
-                    brepVertCount++;
+                    mm.ObjNameRevise(rhObjs_List[i], vertical_Summary.accusationObjName);
+                    vertical_Summary.brepCriminalCount++;
                 }
-                if (result_ExtuBrep)
+                if (result_ExtrBrep)
                 {
-                    mm.ObjNameRevise(rhObjs_List[i], "|Extruded|");
-                    brepVertCount++; //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    mm.ObjNameRevise(rhObjs_List[i], extrusion_Summary.accusationObjName);
+                    extrusion_Summary.brepCriminalCount++;
                 }
                 if (result_FlatBrep || 
                     result_VertBrep || 
                     result_RendBrep || 
-                    result_DuplBrep || 
-                    result_ExtuBrep
+                    result_DuplBrep ||
+                    result_ExtrBrep
                     )
                 {
+                    facesCriminalIndex_List = facesCriminalIndex_List.Distinct().ToList();
                     brepIssueCount++;
-                    mm.ObjColorRevise(brep, facesIssueIndex_List, out Rhino.Geometry.Brep newBrep);
+                    faceIssueCount += facesCriminalIndex_List.Count;
+                    mm.ObjColorRevise(brep, facesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
                     doc.Objects.Replace(objsRef_Arry[i], newBrep);
                 }
 
                 i++;
             }
 
-            // Summary Dialog Information Collection
+            // Summary Dialog Information Collection ////////////////////////////////////////////////////////
             string breakLine = "------------------------------------------------------ \n";
             string faceCount_String = "The Total Faces Selected Count: " + faceCount.ToString() + "\n";
             string brepCount_String = "The Total Breps Selected Count: " + brepCount.ToString() + "\n";
             string brepIssue_String = "Breps Have Deviant Components Count: " + brepIssueCount.ToString() + "\n";
-            
-            // Flat String Set
-            string faceFlat_String;
-            string brepFlat_String;
-            if (faceFlatCount != 0)
-            {
-                faceFlat_String = "Faces with 'Curled' Issue Count: " + faceFlatCount.ToString() + "\n";
-                brepFlat_String = "Breps with 'Curled' Issue Count: " + brepFlatCount.ToString() + "\n";
-            }
-            else
-            {
-                faceFlat_String = "Faces with 'Curled' Issue Count: 0" + "\n";
-                brepFlat_String = "Breps with 'Curled' Issue Count: 0" + "\n";
-            }
-
-            // Vertical String Set
-            string faceVert_String;
-            string brepVert_String;
-            if (faceVertCount != 0)
-            {
-                faceVert_String = "Faces with 'Vertical' Issue Count: " + faceVertCount.ToString() + "\n";
-                brepVert_String = "Breps with 'Vertical' Issue Count: " + brepVertCount.ToString() + "\n";
-            }
-            else
-            {
-                faceVert_String = "Faces with 'Vertical' Issue Count: 0" + "\n";
-                brepVert_String = "Breps with 'Vertical' Issue Count: 0" + "\n";
-            }
-
-            // New String Set
+            string faceIssue_String = "Faces Have Deviant Components Count: " + faceIssueCount.ToString() + "\n";
 
             // Dialog Set
             string dialogTitle = "Inspection Result";
             string dialogMessage = breakLine +
                                    faceCount_String +
                                    brepCount_String +
+                                   
+                                   curl_Summary.InspectionResult(fltSurf.CurrentValue) +
+                                   vertical_Summary.InspectionResult(abVerti.CurrentValue) +
+                                   extrusion_Summary.InspectionResult(extuCrv.CurrentValue) +
+                                   
                                    breakLine +
-                                   faceFlat_String +
-                                   brepFlat_String +
-                                   breakLine +
-                                   faceVert_String +
-                                   brepVert_String +
-                                   breakLine +
+                                   faceIssue_String +
                                    brepIssue_String +
-                                   "End of the Inspection\n" +
+                                   
                                    breakLine +
-                                   "[NOTE] Numbers Report 0 means:\n" +
-                                   "       1. Inspection related didn't result.\n" +
-                                   "       2. No issue found.\n";
+                                   "End of the Inspection\n";
+
             doc.Views.Redraw();
             Rhino.UI.Dialogs.ShowTextDialog(dialogMessage, dialogTitle);
         
@@ -289,14 +253,9 @@ namespace Deviant_Inspector
         }
 
 
-        public string Summary(string accusation)
-        {
-            //string breakLine = "------------------------------------------------------ \n";
-            //int faceCriminalCount = 0;
-            //int brepCriminalCOunt = 0;
-
-            return "test";
-        }
 
     }
+
+
+
 }

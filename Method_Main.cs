@@ -18,12 +18,14 @@ namespace Deviant_Inspector
         /// <param name="newName">System.String</param>
         /// <returns>returns true if worked, use #Rhino.DocObjects.RhinoObject.CommitChange# </returns>
         
-        // Public Attributes //////////////////////////////////////////////////////////////////////////
+        // Public Attributes //////////////////////////////////////////////////////////////////
         public double ModelTolerance { get; set; }
         public int EnlargeRatio { get; set; }
         public System.Drawing.Color Color { get; set; }
 
-        // Static Methods /////////////////////////////////////////////////////////////////////////////
+        public List<int> facesCriminalIndex_List = new List<int>();
+
+        //Methods /////////////////////////////////////////////////////////////////////////////
         public bool ObjNameRevise(Rhino.DocObjects.RhinoObject rhObj, string newName)
         {
             //Name Revision
@@ -147,12 +149,17 @@ namespace Deviant_Inspector
             {
                 return false;
             }
-
+            
             // Point of the Outer Loop Collection //////////////////////////////////////////
             double modelToleranceSquare = this.ModelTolerance * this.ModelTolerance;
             List<Rhino.Geometry.Point3d> pt_List = new List<Rhino.Geometry.Point3d>();
             foreach (Rhino.Geometry.Curve segment in crvSegs)
             {
+                if (!segment.IsLinear())
+                {
+                    return false;
+                }
+
                 pt_List.Add(segment.PointAtEnd);
             }
 
@@ -174,4 +181,42 @@ namespace Deviant_Inspector
 
 
     }
+
+    public class Summary
+    {
+        public int faceCriminalCount = 0;
+        public int brepCriminalCount = 0;
+        public string accusation;
+        public string accusationObjName;
+
+        public Summary(string accusation)
+        {
+            this.accusation = accusation;
+            this.accusationObjName = " " + accusation + " |";
+        }
+
+        public string InspectionResult(bool OptionToggle)
+        {
+            string faceCriminal_String;
+            string brepCriminal_String;
+            string breakLine = "------------------------------------------------------ \n";
+            string summary_String;
+            if (OptionToggle)
+            {
+                faceCriminal_String = "Faces with '" + accusation + "' Issue Count: " + faceCriminalCount.ToString() + "\n";
+                brepCriminal_String = "Breps with '" + accusation + "' Issue Count: " + brepCriminalCount.ToString() + "\n";
+                summary_String = breakLine +
+                                 faceCriminal_String +
+                                 brepCriminal_String;
+
+            }
+            else
+            {
+                summary_String = "";
+            }
+            return summary_String;
+        }
+    }
+
+
 }
