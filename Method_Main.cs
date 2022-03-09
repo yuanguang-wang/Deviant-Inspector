@@ -21,9 +21,6 @@ namespace Deviant_Inspector
         // Public Attributes //////////////////////////////////////////////////////////////////
         public double ModelTolerance { get; set; }
         public int EnlargeRatio { get; set; }
-        public System.Drawing.Color Color { get; set; }
-
-        public List<int> facesCriminalIndex_List = new List<int>();
 
         //Methods /////////////////////////////////////////////////////////////////////////////
         public bool ObjNameRevise(Rhino.DocObjects.RhinoObject rhObj, string newName)
@@ -44,18 +41,18 @@ namespace Deviant_Inspector
             return true;
         }
 
-        public bool ObjColorRevise(Rhino.Geometry.Brep brep, List<int> criminalIndex_List, out Rhino.Geometry.Brep newBrep)
+        public bool ObjColorRevise(System.Drawing.Color color, Rhino.Geometry.Brep brep, List<int> criminalIndex_List, out Rhino.Geometry.Brep newBrep)
         {
             newBrep = brep.DuplicateBrep();
             foreach (int i in criminalIndex_List)
             {
-                newBrep.Faces[i].PerFaceColor = this.Color;
+                newBrep.Faces[i].PerFaceColor = color;
             }
 
             return true;
         }
 
-        public bool FlatSrfCheck(Rhino.Geometry.BrepFace bFace) 
+        public bool CurlCheck(Rhino.Geometry.BrepFace bFace) 
         {
             double relaviteTolerance = this.ModelTolerance * this.EnlargeRatio;
             if (bFace.IsPlanar(this.ModelTolerance) == false)
@@ -141,7 +138,7 @@ namespace Deviant_Inspector
             }
         }
 
-        public bool ExtrudeCheck(Rhino.Geometry.BrepFace bFace)
+        public bool ExtrusionCheck(Rhino.Geometry.BrepFace bFace)
         {
             // Avoiding Bad Objects ////////////////////////////////////////////////////////
             Rhino.Geometry.Curve[] crvSegs = bFace.OuterLoop.To3dCurve().DuplicateSegments();
@@ -178,7 +175,35 @@ namespace Deviant_Inspector
             return true;
         }
 
+        public bool RedundencyCheck(Rhino.Geometry.BrepFace bFace) 
+        {
+            // Avoiding Bad Objects ////////////////////////////////////////////////////////
+            Rhino.Geometry.Curve[] crvSegs = bFace.OuterLoop.To3dCurve().DuplicateSegments();
+            if (crvSegs.Length <= 2)
+            {
+                return false;
+            }
 
+            // Itirate each Loop Segment ///////////////////////////////////////////////////
+            foreach (Rhino.Geometry.Curve segment in crvSegs)
+            {
+                Rhino.Geometry.Curve crvDup = segment.DuplicateCurve();
+                var crvSimplified = segment.Simplify(Rhino.Geometry.CurveSimplifyOptions.All, ModelTolerance, 1);
+                if (crvSimplified != null)
+                {
+                    Rhino.RhinoApp.WriteLine("simplified");
+                    bool crvDuplicationDetect = Rhino.Geometry.GeometryBase.GeometryEquals(crvSimplified, crvDup);
+                    Rhino.RhinoApp.WriteLine(crvDuplicationDetect.ToString());
+                    if (crvDuplicationDetect == false)
+                    {
+                        Rhino.RhinoApp.WriteLine("run");
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
 
     }
 
