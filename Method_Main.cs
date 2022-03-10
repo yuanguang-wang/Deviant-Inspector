@@ -23,21 +23,43 @@ namespace Deviant_Inspector
         public int EnlargeRatio { get; set; }
 
         //Methods /////////////////////////////////////////////////////////////////////////////
-        public bool ObjNameRevise(Rhino.DocObjects.RhinoObject rhObj, string newName)
+        public bool ObjNameRevise(Rhino.DocObjects.RhinoObject rhObj, string accusation)
         {
-            //Name Revision
+            //Name Revision ////////////////////////////////////////////////////////
             if (rhObj.Attributes.Name == null)
             {
-                rhObj.Attributes.Name = "|";
+                rhObj.Attributes.Name = "_";
             }
-            string currentName = rhObj.Attributes.Name;
-            if (!currentName.Contains(newName))
+            else if (!rhObj.Attributes.Name.Contains("_"))
             {
-                newName = currentName + newName;
+                rhObj.Attributes.Name += "_";
             }
-            rhObj.Attributes.Name = newName;
+
+            string currentName = rhObj.Attributes.Name;
+            if (!currentName.Contains(accusation))
+            {
+                currentName += accusation;
+            }
+            rhObj.Attributes.Name = currentName;
             rhObj.CommitChanges();
 
+            return true;
+        }
+
+        public bool ObjNameRollback(Rhino.DocObjects.RhinoObject rhObj, string accusation)
+        {
+            if (rhObj.Attributes.Name == null)
+            {
+                rhObj.Attributes.Name = "_";
+            }
+            string currentName = rhObj.Attributes.Name;
+            if (currentName.Contains(accusation))
+            {
+                string newName = currentName.Replace(accusation, "");
+                rhObj.Attributes.Name = newName;
+                
+            }
+            rhObj.CommitChanges();
             return true;
         }
 
@@ -47,6 +69,17 @@ namespace Deviant_Inspector
             foreach (int i in criminalIndex_List)
             {
                 newBrep.Faces[i].PerFaceColor = color;
+            }
+
+            return true;
+        }
+
+        public bool ObjColorRollback(Rhino.Geometry.Brep brep, List<int> criminalIndex_List, out Rhino.Geometry.Brep newBrep)
+        {
+            newBrep = brep.DuplicateBrep();
+            foreach (int i in criminalIndex_List)
+            {
+                newBrep.Faces[i].PerFaceColor = System.Drawing.Color.Empty;
             }
 
             return true;
@@ -205,7 +238,7 @@ namespace Deviant_Inspector
         public Summary(string accusation)
         {
             this.accusation = accusation;
-            this.accusationObjName = " " + accusation + " |";
+            this.accusationObjName = "[" + accusation + "] ";
         }
 
         public string InspectionResult(bool OptionToggle)
