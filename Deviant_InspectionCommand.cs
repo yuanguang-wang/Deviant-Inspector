@@ -7,10 +7,10 @@ using System.Linq;
 
 namespace Deviant_Inspector
 {
-    public class Deviant_InspectorCommand : Rhino.Commands.Command
+    public class Deviant_InspectionCommand : Rhino.Commands.Command
     {
 
-        public Deviant_InspectorCommand()
+        public Deviant_InspectionCommand()
         {
             // Rhino only creates one instance of each command class defined in a
             // plug-in, so it is safe to store a refence in a static property.
@@ -18,9 +18,9 @@ namespace Deviant_Inspector
         }
 
         ///<summary>The only instance of this command.</summary>
-        public static Deviant_InspectorCommand Instance { get; private set; }
+        public static Deviant_InspectionCommand Instance { get; private set; }
         ///<returns>The command name as it appears on the Rhino command line.</returns>
-        public override string EnglishName => "Deviantinspector";
+        public override string EnglishName => "Deviantinspection";
 
         protected override Rhino.Commands.Result RunCommand(RhinoDoc doc, Rhino.Commands.RunMode mode)
         {

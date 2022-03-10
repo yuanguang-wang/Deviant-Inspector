@@ -141,8 +141,8 @@ namespace Deviant_Inspector
         public bool ExtrusionCheck(Rhino.Geometry.BrepFace bFace)
         {
             // Avoiding Bad Objects ////////////////////////////////////////////////////////
-            Rhino.Geometry.Curve[] crvSegs = bFace.OuterLoop.To3dCurve().DuplicateSegments();
-            if (crvSegs.Length <= 2)
+            Rhino.Geometry.Curve[] loop = bFace.OuterLoop.To3dCurve().DuplicateSegments();
+            if (loop.Length <= 2)
             {
                 return false;
             }
@@ -150,7 +150,7 @@ namespace Deviant_Inspector
             // Point of the Outer Loop Collection //////////////////////////////////////////
             double modelToleranceSquare = this.ModelTolerance * this.ModelTolerance;
             List<Rhino.Geometry.Point3d> pt_List = new List<Rhino.Geometry.Point3d>();
-            foreach (Rhino.Geometry.Curve segment in crvSegs)
+            foreach (Rhino.Geometry.Curve segment in loop)
             {
                 if (!segment.IsLinear())
                 {
@@ -177,28 +177,16 @@ namespace Deviant_Inspector
 
         public bool RedundencyCheck(Rhino.Geometry.BrepFace bFace) 
         {
-            // Avoiding Bad Objects ////////////////////////////////////////////////////////
-            Rhino.Geometry.Curve[] crvSegs = bFace.OuterLoop.To3dCurve().DuplicateSegments();
-            if (crvSegs.Length <= 2)
-            {
-                return false;
-            }
+            Rhino.Geometry.Curve loop = bFace.OuterLoop.To3dCurve();
 
             // Itirate each Loop Segment ///////////////////////////////////////////////////
-            foreach (Rhino.Geometry.Curve segment in crvSegs)
+            var crvSimplified = loop.Simplify(Rhino.Geometry.CurveSimplifyOptions.All, ModelTolerance, 1);
+            if (crvSimplified != null)
             {
-                Rhino.Geometry.Curve crvDup = segment.DuplicateCurve();
-                var crvSimplified = segment.Simplify(Rhino.Geometry.CurveSimplifyOptions.All, ModelTolerance, 1);
-                if (crvSimplified != null)
+                bool crvDuplicationDetect = Rhino.Geometry.GeometryBase.GeometryEquals(crvSimplified, loop);
+                if (crvDuplicationDetect == false)
                 {
-                    Rhino.RhinoApp.WriteLine("simplified");
-                    bool crvDuplicationDetect = Rhino.Geometry.GeometryBase.GeometryEquals(crvSimplified, crvDup);
-                    Rhino.RhinoApp.WriteLine(crvDuplicationDetect.ToString());
-                    if (crvDuplicationDetect == false)
-                    {
-                        Rhino.RhinoApp.WriteLine("run");
-                        return true;
-                    }
+                    return true;
                 }
             }
 
