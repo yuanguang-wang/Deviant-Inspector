@@ -25,7 +25,7 @@ namespace Deviant_Inspector
         //Methods /////////////////////////////////////////////////////////////////////////////
         public bool ObjNameRevise(Rhino.DocObjects.RhinoObject rhObj, string accusation)
         {
-            //Name Revision ////////////////////////////////////////////////////////
+            //Name Revision ////////////////////////////////////////////
             if (rhObj.Attributes.Name == null)
             {
                 rhObj.Attributes.Name = "_";
@@ -41,7 +41,6 @@ namespace Deviant_Inspector
                 currentName += accusation;
             }
             rhObj.Attributes.Name = currentName;
-            rhObj.CommitChanges();
 
             return true;
         }
@@ -55,11 +54,14 @@ namespace Deviant_Inspector
             string currentName = rhObj.Attributes.Name;
             if (currentName.Contains(accusation))
             {
-                string newName = currentName.Replace(accusation, "");
-                rhObj.Attributes.Name = newName;
-                
+                currentName = currentName.Replace(accusation, "");
             }
-            rhObj.CommitChanges();
+            if (currentName.Last() == '_')
+            {
+                currentName = currentName.Remove(currentName.Length - 1);
+            }
+            rhObj.Attributes.Name = currentName;
+
             return true;
         }
 
@@ -238,7 +240,7 @@ namespace Deviant_Inspector
         public Summary(string accusation)
         {
             this.accusation = accusation;
-            this.accusationObjName = "[" + accusation + "] ";
+            this.accusationObjName = "[" + accusation + "]";
         }
 
         public string InspectionResult(bool OptionToggle)

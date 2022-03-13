@@ -1,7 +1,5 @@
 ﻿using Rhino;
-using System;
 using System.Collections.Generic;
-using System.Windows.Forms;
 using System.Linq;
 
 
@@ -189,7 +187,7 @@ namespace Deviant_Inspector
                     }
 
                 }
-
+                // Name Revision ///////////////////////////////////////
                 if (curlBrep_Result)
                 {
                     mm.ObjNameRevise(rhObjs_List[i], curl_Summary.accusationObjName);
@@ -210,6 +208,9 @@ namespace Deviant_Inspector
                     mm.ObjNameRevise(rhObjs_List[i], redundency_Summary.accusationObjName);
                     redundency_Summary.brepCriminalCount++;
                 }
+                // Commit Changes ///////////////////////////////////////
+                rhObjs_List[i].CommitChanges();
+                // Color Change & Commit ////////////////////////////////
                 if (curlBrep_Result       || 
                     verticalBrep_Result   || 
                     redundencyBrep_Result || 
@@ -221,6 +222,7 @@ namespace Deviant_Inspector
                     faceIssue_Count += facesCriminalIndex_List.Count;
                     mm.ObjColorRevise(color, brep, facesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
                     doc.Objects.Replace(objsRef_Arry[i], newBrep);
+
                 }
 
                 i++;

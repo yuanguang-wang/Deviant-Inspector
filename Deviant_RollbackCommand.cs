@@ -18,15 +18,18 @@ namespace Deviant_Inspector
         public override string EnglishName => "Deviantrollback";
 
         protected override Rhino.Commands.Result RunCommand(RhinoDoc doc, Rhino.Commands.RunMode mode)
-        {
+        {   
+            /////////////////////////////////////////////////////////////////////////////////////////////////////
             // Initiation ///////////////////////////////////////////////////////////////////////////////////////
-            Rhino.Input.Custom.GetOption getOption = new Rhino.Input.Custom.GetOption();
             Rhino.Input.Custom.GetObject getObjects = new Rhino.Input.Custom.GetObject
             {
                 GeometryFilter = Rhino.DocObjects.ObjectType.Brep,
                 GroupSelect = true,
-                SubObjectSelect = false
+                SubObjectSelect = false,
+                DeselectAllBeforePostSelect = false
             };
+            getObjects.EnableClearObjectsOnEntry(false);
+            getObjects.EnableUnselectObjectsOnExit(false);
 
             // MM Instance Initiation ///////////////////////////////////////////////////////////////////////////
             Deviant_Inspector.Method_Main mm = new Method_Main
@@ -41,6 +44,7 @@ namespace Deviant_Inspector
             Deviant_Inspector.Summary vertical_Summary = new Summary("Vertical");
             Deviant_Inspector.Summary redundency_Summary = new Summary("Redundency");
 
+            /////////////////////////////////////////////////////////////////////////////////////////////////////
             // Set Options///////////////////////////////////////////////////////////////////////////////////////
             Rhino.Input.Custom.OptionToggle vertical_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle redundency_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
@@ -50,31 +54,50 @@ namespace Deviant_Inspector
             // Remarks on method AddOptionToggle
             // Body: str Must only consist of letters and numbers (no characters list periods, spaces, or dashes))
             // Type OptionToggle need a ref prefix
-            getOption.AddOptionToggle("Vertical", ref vertical_Toggle);
-            getOption.AddOptionToggle("Redundancy", ref redundency_Toggle);
-            getOption.AddOptionToggle("Curl", ref curl_Toggle);
-            getOption.AddOptionToggle("Extrusion", ref extrusion_Toggle);
-            getOption.AcceptNothing(true);
+            getObjects.AddOptionToggle("Vertical", ref vertical_Toggle);
+            getObjects.AddOptionToggle("Redundancy", ref redundency_Toggle);
+            getObjects.AddOptionToggle("Curl", ref curl_Toggle);
+            getObjects.AddOptionToggle("Extrusion", ref extrusion_Toggle);
 
             // Option Setting Loop ////////////////////////////////////////////////////////////////////////
-            getOption.SetCommandPrompt("Select the Deviant Type to be Rollback");
-            while (true)
-            {
-                Rhino.Input.GetResult rc = getOption.Get();
-                if (getOption.CommandResult() != Rhino.Commands.Result.Success)
-                {
-                    return getOption.CommandResult();
-                }
+            bool havePreSelectedObjs = false;
 
-                if (rc == Rhino.Input.GetResult.Nothing)
+            getObjects.SetCommandPrompt("Select the B-Reps to be Rolled Back");
+            while (true)
+            {                
+                Rhino.Input.GetResult getResult = getObjects.GetMultiple(1, 0);
+
+                if (getResult == Rhino.Input.GetResult.Option)
                 {
-                    RhinoApp.WriteLine("Rollback Setting Finished");
-                    break;
-                }
-                else if (rc == Rhino.Input.GetResult.Option)
-                {
+                    getObjects.EnablePreSelect(false, true);
                     continue;
                 }
+                else if (getResult != Rhino.Input.GetResult.Object)
+                {
+                    RhinoApp.WriteLine("[COMMAND EXIT] Nothing is Selected to be Rolled Back");
+                    return Rhino.Commands.Result.Cancel;
+                }
+
+                if (getObjects.ObjectsWerePreselected)
+                {
+                    havePreSelectedObjs = true;
+                    getObjects.EnablePreSelect(false, true);
+                    continue;
+                }
+
+                break;
+            }
+
+            //Unselected All Objs /////////////////////////////////////////////////////////////////////////
+            if (havePreSelectedObjs)
+            {
+                for (int j = 0; j < getObjects.ObjectCount; j++)
+                {
+                    Rhino.DocObjects.RhinoObject rhinoObject = getObjects.Object(j).Object();
+                    if (null != rhinoObject)
+                        rhinoObject.Select(false);
+                }
+                doc.Views.Redraw();
             }
 
             // All Off Toggle Exception ///////////////////////////////////////////////////////////////////
@@ -85,19 +108,23 @@ namespace Deviant_Inspector
             if (!toggleAllValue)
             {
                 RhinoApp.WriteLine("[COMMAND EXIT] All Rollback is Turned off, Nothing will be Rolled Back");
-                return Rhino.Commands.Result.Failure;
+                return Rhino.Commands.Result.Cancel;
             }
 
             // Brep Collection ////////////////////////////////////////////////////////////////////////////
-            getObjects.SetCommandPrompt("Select the B-Reps to be Rolled Back");
-            getObjects.GetMultiple(1, 0);
             if (getObjects.CommandResult() != Rhino.Commands.Result.Success)
             {
-                RhinoApp.WriteLine("[COMMAND EXIT] Nothing is Selected to be Rolled Back");
+                RhinoApp.WriteLine("[COMMAND EXIT] Rollback Command has been Interrupted");
                 return Rhino.Commands.Result.Failure;
             }
+            else
+            {
+                RhinoApp.WriteLine("-----------------------------------------------------------------------------");
+                System.Threading.Thread.Sleep(500);
+                RhinoApp.WriteLine("Rollback Setting Finished, Deviants will be Released Now");
+                System.Threading.Thread.Sleep(1000);
+            }
             Rhino.DocObjects.ObjRef[] objsRef_Arry = getObjects.Objects();
-            doc.Objects.UnselectAll();
 
             // Totally Obj List with Brep % RhObj ///////////////////////////////////////////////////////////
             List<Rhino.Geometry.Brep> breps_List = new List<Rhino.Geometry.Brep>();
@@ -115,7 +142,7 @@ namespace Deviant_Inspector
                 List<int> facesCriminalIndex_List = new List<int>();
                 foreach (Rhino.Geometry.BrepFace brepFace in brep.Faces)
                 {
-                    // Curl Surface Iteration //////////////////////
+                    // Curl Surface Iteration ///////////////////////
                     if (curl_Toggle.CurrentValue)
                     {
                         bool curlFace_Result = mm.CurlCheck(brepFace);
@@ -125,7 +152,7 @@ namespace Deviant_Inspector
                             facesCriminalIndex_List.Add(brepFace.FaceIndex);
                         }
                     }
-                    // Vertical Surface Iteration //////////////////////
+                    // Vertical Surface Iteration ///////////////////
                     if (vertical_Toggle.CurrentValue)
                     {
                         bool verticalFace_Result = mm.VerticalCheck(brepFace);
@@ -135,7 +162,7 @@ namespace Deviant_Inspector
                             facesCriminalIndex_List.Add(brepFace.FaceIndex);
                         }
                     }
-                    // Extruded Surface Iteration //////////////////////
+                    // Extruded Surface Iteration ///////////////////
                     if (extrusion_Toggle.CurrentValue)
                     {
                         bool extrusionFace_Result = mm.ExtrusionCheck(brepFace);
@@ -145,7 +172,7 @@ namespace Deviant_Inspector
                             facesCriminalIndex_List.Add(brepFace.FaceIndex);
                         }
                     }
-                    // Extruded Surface Iteration //////////////////////
+                    // Extruded Surface Iteration ////////////////////
                     if (redundency_Toggle.CurrentValue)
                     {
                         bool redundencyFace_Result = mm.RedundencyCheck(brepFace);
@@ -180,7 +207,9 @@ namespace Deviant_Inspector
                 {
                     mm.ObjNameRollback(rhObjs_List[i], redundency_Summary.accusationObjName);
                 }
+                rhObjs_List[i].CommitChanges();
 
+                // i++ //////////////////////////////////////////////////
                 i++;
             }
 
