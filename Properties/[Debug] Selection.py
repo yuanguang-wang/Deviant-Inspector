@@ -9,11 +9,25 @@ def test_command():
     go = Rhino.Input.Custom.GetObject()
     go.SetCommandPrompt("test")
     go.AddOptionInteger("Option1", opt_int)
-    go.GroupSelect = true
-    go.SubObjectSelect = false
-    go.EnableClearObjectsOnEntry(false)
-    go.EnableUnselectObjectsOnExit(false)
-    go.DeselectAllBeforePostSelect = false
+    #go.GroupSelect = True
+    #go.SubObjectSelect = False
+    #go.EnableClearObjectsOnEntry(False)
+    #go.EnableUnselectObjectsOnExit(False)
+    #go.DeselectAllBeforePostSelect = False
+    #go.EnablePreSelect(False, True)
+    while True:
+        res = go.Get()
+        if res == Rhino.Input.GetResult.Option:
+            print("option")
+            continue
+        elif res == Rhino.Input.GetResult.Object:
+            print("obj")
+            #go.EnablePreSelect(False, True)
+            continue
+        else:
+            print("cancel")
+            break
+    
     
 
 

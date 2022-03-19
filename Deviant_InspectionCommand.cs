@@ -2,12 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 
-
 namespace Deviant_Inspector
 {
     public class Deviant_InspectionCommand : Rhino.Commands.Command
     {
-
         public Deviant_InspectionCommand()
         {
             // Rhino only creates one instance of each command class defined in a
@@ -18,20 +16,21 @@ namespace Deviant_Inspector
         ///<summary>The only instance of this command.</summary>
         public static Deviant_InspectionCommand Instance { get; private set; }
         ///<returns>The command name as it appears on the Rhino command line.</returns>
-        public override string EnglishName => "Deviantinspection";
+        public override string EnglishName => "Devin";
 
         protected override Rhino.Commands.Result RunCommand(RhinoDoc doc, Rhino.Commands.RunMode mode)
         {
+            /////////////////////////////////////////////////////////////////////////////////////////////////////
             // Initiation ///////////////////////////////////////////////////////////////////////////////////////
-            Rhino.Input.Custom.GetOption getOption = new Rhino.Input.Custom.GetOption();
-            Rhino.Input.Custom.GetObject getObjects = new Rhino.Input.Custom.GetObject 
+            Rhino.Input.Custom.GetObject getObjects = new Rhino.Input.Custom.GetObject
             {
                 GeometryFilter = Rhino.DocObjects.ObjectType.Brep,
                 GroupSelect = true,
-                SubObjectSelect = false
+                SubObjectSelect = false,
+                DeselectAllBeforePostSelect = false
             };
-
-            System.Drawing.Color color = System.Drawing.Color.Red;
+            getObjects.EnableClearObjectsOnEntry(false);
+            getObjects.EnableUnselectObjectsOnExit(false);
 
             // MM Instance Initiation ///////////////////////////////////////////////////////////////////////////
             Deviant_Inspector.Method_Main mm = new Method_Main
@@ -40,40 +39,64 @@ namespace Deviant_Inspector
                 EnlargeRatio = 100
             };
 
+            // Summary for using Accusation Name ////////////////////////////////////////////////////////////
+            Deviant_Inspector.Summary extrusion_Summary = new Summary(Accusation.Extrusion);
+            Deviant_Inspector.Summary curl_Summary = new Summary(Accusation.Curl);
+            Deviant_Inspector.Summary vertical_Summary = new Summary(Accusation.Vertical);
+            Deviant_Inspector.Summary redundency_Summary = new Summary(Accusation.Redundency);
+
+            /////////////////////////////////////////////////////////////////////////////////////////////////////
             // Set Options///////////////////////////////////////////////////////////////////////////////////////
             Rhino.Input.Custom.OptionToggle vertical_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
-            Rhino.Input.Custom.OptionToggle redundency_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle curl_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle extrusion_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
+            Rhino.Input.Custom.OptionToggle redundency_Toggle = new Rhino.Input.Custom.OptionToggle(false, "Off", "On");
 
             // Remarks on method AddOptionToggle
             // Body: str Must only consist of letters and numbers (no characters list periods, spaces, or dashes))
             // Type OptionToggle need a ref prefix
-            getOption.AddOptionToggle("Vertical", ref vertical_Toggle);
-            getOption.AddOptionToggle("Redundancy", ref redundency_Toggle);
-            getOption.AddOptionToggle("Curl", ref curl_Toggle);
-            getOption.AddOptionToggle("Extrusion", ref extrusion_Toggle);
-            getOption.AcceptNothing(true);
+            getObjects.AddOptionToggle(Accusation.Vertical, ref vertical_Toggle);
+            getObjects.AddOptionToggle(Accusation.Curl, ref curl_Toggle);
+            getObjects.AddOptionToggle(Accusation.Extrusion, ref extrusion_Toggle);
+            getObjects.AddOptionToggle(Accusation.Redundency, ref redundency_Toggle);
 
             // Option Setting Loop ////////////////////////////////////////////////////////////////////////
-            getOption.SetCommandPrompt("Select the Inspection to be Excuted");
+            bool havePreSelectedObjs = false;
+
+            getObjects.SetCommandPrompt("Select the B-Reps to be Inspected");
             while (true)
             {
-                Rhino.Input.GetResult rc = getOption.Get();
-                if (getOption.CommandResult() != Rhino.Commands.Result.Success)
-                {
-                return getOption.CommandResult();
-                }
+                Rhino.Input.GetResult getResult = getObjects.GetMultiple(1, 0);
 
-                if (rc == Rhino.Input.GetResult.Nothing)
+                if (getResult == Rhino.Input.GetResult.Option)
                 {
-                    RhinoApp.WriteLine("Inspection Setting Finished");
-                    break;
-                }
-                else if (rc == Rhino.Input.GetResult.Option)
-                {
+                    getObjects.EnablePreSelect(false, true);
                     continue;
                 }
+                else if (getResult == Rhino.Input.GetResult.Object) 
+                {
+                    getObjects.EnablePreSelect(true, true);
+                    break;
+                }
+                else 
+                {
+                    RhinoApp.WriteLine("[COMMAND EXIT] Nothing is Selected to be Inspected");
+                    doc.Views.Redraw();
+                    return Rhino.Commands.Result.Cancel;
+                }
+
+            }
+
+            //Unselected All Objs /////////////////////////////////////////////////////////////////////////
+            if (havePreSelectedObjs)
+            {
+                for (int j = 0; j < getObjects.ObjectCount; j++)
+                {
+                    Rhino.DocObjects.RhinoObject rhinoObject = getObjects.Object(j).Object();
+                    if (null != rhinoObject)
+                        rhinoObject.Select(false);
+                }
+                doc.Views.Redraw();
             }
 
             // All Off Toggle Exception ///////////////////////////////////////////////////////////////////
@@ -84,7 +107,8 @@ namespace Deviant_Inspector
             if (!toggleAllValue)
             {
                 RhinoApp.WriteLine("[COMMAND EXIT] All Inspection is Turned off, Nothing will be Inspected");
-                return Rhino.Commands.Result.Failure;
+                doc.Views.Redraw();
+                return Rhino.Commands.Result.Cancel;
             }
 
             // Brep Collection ////////////////////////////////////////////////////////////////////////////
@@ -93,20 +117,23 @@ namespace Deviant_Inspector
             if (getObjects.CommandResult() != Rhino.Commands.Result.Success)
             {
                 RhinoApp.WriteLine("[COMMAND EXIT] Nothing is Selected to be Inspected");
-                return Rhino.Commands.Result.Failure;
+                doc.Views.Redraw();
+                return Rhino.Commands.Result.Cancel;
             }
             Rhino.DocObjects.ObjRef[] objsRef_Arry = getObjects.Objects();
             doc.Objects.UnselectAll();
 
             // Color Set ///////////////////////////////////////////////////////////////////////////////////
+            System.Drawing.Color color = System.Drawing.Color.Red;
             bool result_Color = Rhino.UI.Dialogs.ShowColorDialog(ref color, true, "Select One Color to be Drawn on Deviants, Default is Red");
             if (result_Color == false)
             {
                 RhinoApp.WriteLine("[COMMAND EXIT] Deviant Color is not Specified");
-                return Rhino.Commands.Result.Failure;
+                doc.Views.Redraw();
+                return Rhino.Commands.Result.Cancel;
             }
- 
-            // Totally Obj List with Brep % RhObj ///////////////////////////////////////////////////////////
+
+            // Totally Obj List with Brep % RhObj //////////////////////////////////////////////////////////
             List<Rhino.Geometry.Brep> breps_List = new List<Rhino.Geometry.Brep>();
             List<Rhino.DocObjects.RhinoObject> rhObjs_List = new List<Rhino.DocObjects.RhinoObject>();
             foreach (Rhino.DocObjects.ObjRef objRef in objsRef_Arry)
@@ -115,19 +142,14 @@ namespace Deviant_Inspector
                 rhObjs_List.Add(objRef.Object());
             }
 
-            // Summary Initiation ///////////////////////////////////////////////////////////////////////////
+            // Summary Initiation //////////////////////////////////////////////////////////////////////////
             int brepIssue_Count = 0;
             int faceIssue_Count = 0;
             int brep_Count = breps_List.Count;
             int face_Count = 0;
 
-            Deviant_Inspector.Summary extrusion_Summary = new Summary("Extrusion");
-            Deviant_Inspector.Summary curl_Summary = new Summary("Curl");
-            Deviant_Inspector.Summary vertical_Summary = new Summary("Vertical");
-            Deviant_Inspector.Summary redundency_Summary = new Summary("Redundency");
-
-            // Change the Color and Name ////////////////////////////////////////////////////////////////////
-            // Iterate All rhObjs in List ///////////////////////////////////////////////////////////////////
+            // Change the Color and Name ///////////////////////////////////////////////////////////////////
+            // Iterate All rhObjs in List //////////////////////////////////////////////////////////////////
             int i = 0;
             foreach (Rhino.Geometry.Brep brep in breps_List)
             {

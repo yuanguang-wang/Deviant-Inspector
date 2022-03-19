@@ -1,5 +1,4 @@
-﻿using System;
-using Rhino;
+﻿using Rhino;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -15,7 +14,7 @@ namespace Deviant_Inspector
         ///<summary>The only instance of the MyCommand command.</summary>
         public static Deviant_RollbackCommand Instance { get; private set; }
 
-        public override string EnglishName => "Deviantrollback";
+        public override string EnglishName => "Devro";
 
         protected override Rhino.Commands.Result RunCommand(RhinoDoc doc, Rhino.Commands.RunMode mode)
         {   
@@ -39,25 +38,25 @@ namespace Deviant_Inspector
             };
 
             // Summary for using Accusation Name ////////////////////////////////////////////////////////////
-            Deviant_Inspector.Summary extrusion_Summary = new Summary("Extrusion");
-            Deviant_Inspector.Summary curl_Summary = new Summary("Curl");
-            Deviant_Inspector.Summary vertical_Summary = new Summary("Vertical");
-            Deviant_Inspector.Summary redundency_Summary = new Summary("Redundency");
+            Deviant_Inspector.Summary extrusion_Summary = new Summary(Accusation.Extrusion);
+            Deviant_Inspector.Summary curl_Summary = new Summary(Accusation.Curl);
+            Deviant_Inspector.Summary vertical_Summary = new Summary(Accusation.Vertical);
+            Deviant_Inspector.Summary redundency_Summary = new Summary(Accusation.Redundency);
 
             /////////////////////////////////////////////////////////////////////////////////////////////////////
             // Set Options///////////////////////////////////////////////////////////////////////////////////////
             Rhino.Input.Custom.OptionToggle vertical_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
-            Rhino.Input.Custom.OptionToggle redundency_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle curl_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle extrusion_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
+            Rhino.Input.Custom.OptionToggle redundency_Toggle = new Rhino.Input.Custom.OptionToggle(false, "Off", "On");
 
             // Remarks on method AddOptionToggle
             // Body: str Must only consist of letters and numbers (no characters list periods, spaces, or dashes))
             // Type OptionToggle need a ref prefix
-            getObjects.AddOptionToggle("Vertical", ref vertical_Toggle);
-            getObjects.AddOptionToggle("Redundancy", ref redundency_Toggle);
-            getObjects.AddOptionToggle("Curl", ref curl_Toggle);
-            getObjects.AddOptionToggle("Extrusion", ref extrusion_Toggle);
+            getObjects.AddOptionToggle(Accusation.Vertical, ref vertical_Toggle);
+            getObjects.AddOptionToggle(Accusation.Curl, ref curl_Toggle);
+            getObjects.AddOptionToggle(Accusation.Extrusion, ref extrusion_Toggle);
+            getObjects.AddOptionToggle(Accusation.Redundency, ref redundency_Toggle);
 
             // Option Setting Loop ////////////////////////////////////////////////////////////////////////
             bool havePreSelectedObjs = false;
@@ -75,6 +74,7 @@ namespace Deviant_Inspector
                 else if (getResult != Rhino.Input.GetResult.Object)
                 {
                     RhinoApp.WriteLine("[COMMAND EXIT] Nothing is Selected to be Rolled Back");
+                    doc.Views.Redraw();
                     return Rhino.Commands.Result.Cancel;
                 }
 
@@ -108,6 +108,7 @@ namespace Deviant_Inspector
             if (!toggleAllValue)
             {
                 RhinoApp.WriteLine("[COMMAND EXIT] All Rollback is Turned off, Nothing will be Rolled Back");
+                doc.Views.Redraw();
                 return Rhino.Commands.Result.Cancel;
             }
 
@@ -115,12 +116,11 @@ namespace Deviant_Inspector
             if (getObjects.CommandResult() != Rhino.Commands.Result.Success)
             {
                 RhinoApp.WriteLine("[COMMAND EXIT] Rollback Command has been Interrupted");
-                return Rhino.Commands.Result.Failure;
+                doc.Views.Redraw();
+                return Rhino.Commands.Result.Cancel;
             }
             else
             {
-                RhinoApp.WriteLine("-----------------------------------------------------------------------------");
-                System.Threading.Thread.Sleep(500);
                 RhinoApp.WriteLine("Rollback Setting Finished, Deviants will be Released Now");
                 System.Threading.Thread.Sleep(1000);
             }
@@ -137,6 +137,8 @@ namespace Deviant_Inspector
 
             // Iterate Every rhObj to Rollback Deviants //////////////////////////////////////////////////////
             int i = 0;
+            bool rollback_Result = false;
+
             foreach (Rhino.Geometry.Brep brep in breps_List)
             {
                 List<int> facesCriminalIndex_List = new List<int>();
@@ -193,24 +195,29 @@ namespace Deviant_Inspector
                 // Name Rollback ////////////////////////////////////////
                 if (curl_Toggle.CurrentValue)
                 {
-                    mm.ObjNameRollback(rhObjs_List[i], curl_Summary.accusationObjName);
+                    rollback_Result = mm.ObjNameRollback(rhObjs_List[i], curl_Summary.accusationObjName);
                 }
                 if (vertical_Toggle.CurrentValue)
                 {
-                    mm.ObjNameRollback(rhObjs_List[i], vertical_Summary.accusationObjName);
+                    rollback_Result = mm.ObjNameRollback(rhObjs_List[i], vertical_Summary.accusationObjName);
                 }
                 if (extrusion_Toggle.CurrentValue)
                 {
-                    mm.ObjNameRollback(rhObjs_List[i], extrusion_Summary.accusationObjName);
+                    rollback_Result = mm.ObjNameRollback(rhObjs_List[i], extrusion_Summary.accusationObjName);
                 }
                 if (redundency_Toggle.CurrentValue)
                 {
-                    mm.ObjNameRollback(rhObjs_List[i], redundency_Summary.accusationObjName);
+                    rollback_Result = mm.ObjNameRollback(rhObjs_List[i], redundency_Summary.accusationObjName);
                 }
                 rhObjs_List[i].CommitChanges();
 
                 // i++ //////////////////////////////////////////////////
                 i++;
+            }
+
+            if (rollback_Result)
+            {
+                RhinoApp.WriteLine("Rollback Finished");
             }
 
             doc.Views.Redraw();

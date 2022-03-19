@@ -266,5 +266,12 @@ namespace Deviant_Inspector
         }
     }
 
+    public static class Accusation
+    {
+        public static string Curl = "Curl";
+        public static string Extrusion = "Extrusion";
+        public static string Vertical = "Vertical";
+        public static string Redundency = "Redundency";
+    }
 
 }
