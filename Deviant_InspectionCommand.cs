@@ -60,9 +60,11 @@ namespace Deviant_Inspector
             getObjects.AddOptionToggle(Accusation.Extrusion, ref extrusion_Toggle);
             getObjects.AddOptionToggle(Accusation.Redundency, ref redundency_Toggle);
 
-            // Option Setting Loop ////////////////////////////////////////////////////////////////////////
-            bool havePreSelectedObjs = false;
+            // Unselect All Objs before Inspection
+            doc.Objects.UnselectAll();
+            doc.Views.Redraw();
 
+            // Option Setting Loop ////////////////////////////////////////////////////////////////////////
             getObjects.SetCommandPrompt("Select the B-Reps to be Inspected");
             while (true)
             {
@@ -75,6 +77,7 @@ namespace Deviant_Inspector
                 }
                 else if (getResult == Rhino.Input.GetResult.Object) 
                 {
+                    RhinoApp.WriteLine("Brep Selection Finished; Select One Color to be Drawn on Deviants, Default is Red");
                     getObjects.EnablePreSelect(true, true);
                     break;
                 }
@@ -85,18 +88,6 @@ namespace Deviant_Inspector
                     return Rhino.Commands.Result.Cancel;
                 }
 
-            }
-
-            //Unselected All Objs /////////////////////////////////////////////////////////////////////////
-            if (havePreSelectedObjs)
-            {
-                for (int j = 0; j < getObjects.ObjectCount; j++)
-                {
-                    Rhino.DocObjects.RhinoObject rhinoObject = getObjects.Object(j).Object();
-                    if (null != rhinoObject)
-                        rhinoObject.Select(false);
-                }
-                doc.Views.Redraw();
             }
 
             // All Off Toggle Exception ///////////////////////////////////////////////////////////////////
@@ -277,7 +268,7 @@ namespace Deviant_Inspector
 
             doc.Views.Redraw();
             Rhino.UI.Dialogs.ShowTextDialog(dialogMessage, dialogTitle);
-        
+
             return Rhino.Commands.Result.Success;
         }
 

@@ -58,12 +58,14 @@ namespace Deviant_Inspector
             getObjects.AddOptionToggle(Accusation.Extrusion, ref extrusion_Toggle);
             getObjects.AddOptionToggle(Accusation.Redundency, ref redundency_Toggle);
 
-            // Option Setting Loop ////////////////////////////////////////////////////////////////////////
-            bool havePreSelectedObjs = false;
+            // Unselect All Objs before Rollback
+            doc.Objects.UnselectAll();
+            doc.Views.Redraw();
+
 
             getObjects.SetCommandPrompt("Select the B-Reps to be Rolled Back");
             while (true)
-            {                
+            {
                 Rhino.Input.GetResult getResult = getObjects.GetMultiple(1, 0);
 
                 if (getResult == Rhino.Input.GetResult.Option)
@@ -71,34 +73,21 @@ namespace Deviant_Inspector
                     getObjects.EnablePreSelect(false, true);
                     continue;
                 }
-                else if (getResult != Rhino.Input.GetResult.Object)
+                else if (getResult == Rhino.Input.GetResult.Object)
+                {
+                    RhinoApp.WriteLine("Brep Selection Finished");
+                    getObjects.EnablePreSelect(true, true);
+                    break;
+                }
+                else
                 {
                     RhinoApp.WriteLine("[COMMAND EXIT] Nothing is Selected to be Rolled Back");
                     doc.Views.Redraw();
                     return Rhino.Commands.Result.Cancel;
                 }
 
-                if (getObjects.ObjectsWerePreselected)
-                {
-                    havePreSelectedObjs = true;
-                    getObjects.EnablePreSelect(false, true);
-                    continue;
-                }
-
-                break;
             }
 
-            //Unselected All Objs /////////////////////////////////////////////////////////////////////////
-            if (havePreSelectedObjs)
-            {
-                for (int j = 0; j < getObjects.ObjectCount; j++)
-                {
-                    Rhino.DocObjects.RhinoObject rhinoObject = getObjects.Object(j).Object();
-                    if (null != rhinoObject)
-                        rhinoObject.Select(false);
-                }
-                doc.Views.Redraw();
-            }
 
             // All Off Toggle Exception ///////////////////////////////////////////////////////////////////
             bool toggleAllValue = vertical_Toggle.CurrentValue ||

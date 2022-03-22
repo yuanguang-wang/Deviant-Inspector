@@ -4,30 +4,34 @@ import System
 import rhinoscriptsyntax as rs
 
 def test_command():
-    int = 300
-    opt_int = Rhino.Input.Custom.OptionInteger(int, 200, 900)
+
+    #sc.doc.Objects.UnselectAll()
+    #sc.doc.Views.Redraw()
+    vertical_Toggle = Rhino.Input.Custom.OptionToggle(True, "Off", "On")
     go = Rhino.Input.Custom.GetObject()
     go.SetCommandPrompt("test")
-    go.AddOptionInteger("Option1", opt_int)
+    go.AddOptionToggle('Vertical', vertical_Toggle)
     #go.GroupSelect = True
     #go.SubObjectSelect = False
     #go.EnableClearObjectsOnEntry(False)
-    #go.EnableUnselectObjectsOnExit(False)
-    #go.DeselectAllBeforePostSelect = False
+    ##############################################
+    go.EnableUnselectObjectsOnExit(False) # Principle
+    go.DeselectAllBeforePostSelect = False # Action
+    ##############################################
     #go.EnablePreSelect(False, True)
     while True:
-        res = go.Get()
+        res = go.GetMultiple(1, 0)
         if res == Rhino.Input.GetResult.Option:
+            go.EnablePreSelect(False, True)
             print("option")
             continue
         elif res == Rhino.Input.GetResult.Object:
             print("obj")
-            #go.EnablePreSelect(False, True)
-            continue
+            go.EnablePreSelect(True, True)
+            break
         else:
             print("cancel")
             break
-    
     
 
 
