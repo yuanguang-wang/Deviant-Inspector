@@ -24,7 +24,7 @@ namespace Deviant_Inspector
             // Initiation ///////////////////////////////////////////////////////////////////////////////////////
             Rhino.Input.Custom.GetObject getObjects = new Rhino.Input.Custom.GetObject
             {
-                GeometryFilter = Rhino.DocObjects.ObjectType.Brep,
+                GeometryFilter = Rhino.DocObjects.ObjectType.Brep | Rhino.DocObjects.ObjectType.InstanceReference,
                 GroupSelect = true,
                 SubObjectSelect = false,
                 DeselectAllBeforePostSelect = false
@@ -51,7 +51,8 @@ namespace Deviant_Inspector
             Rhino.Input.Custom.OptionToggle curl_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle extrusion_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle redundency_Toggle = new Rhino.Input.Custom.OptionToggle(false, "Off", "On");
-
+            Rhino.Input.Custom.OptionToggle block_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Exclude", "Include");
+            
             // Remarks on method AddOptionToggle
             // Body: str Must only consist of letters and numbers (no characters list periods, spaces, or dashes))
             // Type OptionToggle need a ref prefix
@@ -59,7 +60,7 @@ namespace Deviant_Inspector
             getObjects.AddOptionToggle(Accusation.Curl, ref curl_Toggle);
             getObjects.AddOptionToggle(Accusation.Extrusion, ref extrusion_Toggle);
             getObjects.AddOptionToggle(Accusation.Redundency, ref redundency_Toggle);
-
+            getObjects.AddOptionToggle("Blocks", ref block_Toggle);
             // Unselect All Objs before Inspection
             doc.Objects.UnselectAll();
             doc.Views.Redraw();
@@ -126,11 +127,25 @@ namespace Deviant_Inspector
 
             // Totally Obj List with Brep % RhObj //////////////////////////////////////////////////////////
             List<Rhino.Geometry.Brep> breps_List = new List<Rhino.Geometry.Brep>();
-            List<Rhino.DocObjects.RhinoObject> rhObjs_List = new List<Rhino.DocObjects.RhinoObject>();
+            List<Rhino.DocObjects.RhinoObject> brepObjs_List = new List<Rhino.DocObjects.RhinoObject>();
+            List<Rhino.DocObjects.InstanceDefinition> iDef_List = new List<Rhino.DocObjects.InstanceDefinition>();
+            
+            // Dispatch IRef and Brep //////////////////////////////////////////////////////////////////////
             foreach (Rhino.DocObjects.ObjRef objRef in objsRef_Arry)
             {
-                breps_List.Add(objRef.Brep());
-                rhObjs_List.Add(objRef.Object());
+                if (objRef.Object() is Rhino.DocObjects.InstanceObject rhObj)
+                {
+                    Rhino.DocObjects.InstanceDefinition iRef = rhObj.InstanceDefinition;
+                    if (!iDef_List.Contains(iRef))
+                    {
+                        iDef_List.Add(iRef);
+                    }
+                }
+                else
+                {
+                    breps_List.Add(objRef.Brep());
+                    brepObjs_List.Add(objRef.Object());
+                }
             }
 
             // Summary Initiation //////////////////////////////////////////////////////////////////////////
@@ -140,7 +155,7 @@ namespace Deviant_Inspector
             int face_Count = 0;
 
             // Change the Color and Name ///////////////////////////////////////////////////////////////////
-            // Iterate All rhObjs in List //////////////////////////////////////////////////////////////////
+            // Iterate All brepObjs in List //////////////////////////////////////////////////////////////////
             int i = 0;
             foreach (Rhino.Geometry.Brep brep in breps_List)
             {
@@ -203,26 +218,26 @@ namespace Deviant_Inspector
                 // Name Revision ///////////////////////////////////////
                 if (curlBrep_Result)
                 {
-                    mm.ObjNameRevise(rhObjs_List[i], curl_Summary.accusationObjName);
+                    mm.ObjNameRevise(brepObjs_List[i], curl_Summary.accusationObjName);
                     curl_Summary.brepCriminalCount++;
                 }
                 if (verticalBrep_Result)
                 {
-                    mm.ObjNameRevise(rhObjs_List[i], vertical_Summary.accusationObjName);
+                    mm.ObjNameRevise(brepObjs_List[i], vertical_Summary.accusationObjName);
                     vertical_Summary.brepCriminalCount++;
                 }
                 if (extrusionBrep_Result)
                 {
-                    mm.ObjNameRevise(rhObjs_List[i], extrusion_Summary.accusationObjName);
+                    mm.ObjNameRevise(brepObjs_List[i], extrusion_Summary.accusationObjName);
                     extrusion_Summary.brepCriminalCount++;
                 }
                 if (redundencyBrep_Result)
                 {
-                    mm.ObjNameRevise(rhObjs_List[i], redundency_Summary.accusationObjName);
+                    mm.ObjNameRevise(brepObjs_List[i], redundency_Summary.accusationObjName);
                     redundency_Summary.brepCriminalCount++;
                 }
                 // Commit Changes ///////////////////////////////////////
-                rhObjs_List[i].CommitChanges();
+                brepObjs_List[i].CommitChanges();
                 // Color Change & Commit ////////////////////////////////
                 if (curlBrep_Result       || 
                     verticalBrep_Result   || 
