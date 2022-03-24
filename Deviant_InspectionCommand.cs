@@ -155,7 +155,7 @@ namespace Deviant_Inspector
             int face_Count = 0;
 
             // Change the Color and Name ///////////////////////////////////////////////////////////////////
-            // Iterate All brepObjs in List //////////////////////////////////////////////////////////////////
+            // Iterate All brepObjs in List ////////////////////////////////////////////////////////////////
             int i = 0;
             foreach (Rhino.Geometry.Brep brep in breps_List)
             {

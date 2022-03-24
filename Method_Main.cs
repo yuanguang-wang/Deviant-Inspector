@@ -274,4 +274,126 @@ namespace Deviant_Inspector
         public static string Redundency = "Redundency";
     }
 
+    public class Scan
+    {
+
+        public List<Rhino.Geometry.Brep> Brep_List { get; set; }
+        public bool CurlBrep_Result { get; set; }
+        public bool VerticalBrep_Result { get; set; }
+        public bool RedundencyBrep_Result { get; set; }
+        public bool ExtrusionBrep_Result { get; set; }
+        public Rhino.Input.Custom.OptionToggle Curl_Toggle { get; set; }
+        public Rhino.Input.Custom.OptionToggle Vertical_Toggle { get; set; }
+        public Rhino.Input.Custom.OptionToggle Extrusion_Toggle { get; set; }
+        public Rhino.Input.Custom.OptionToggle Redundency_Toggle { get; set; }
+
+        public System.Drawing.Color Color { get; set; } 
+        public Rhino.RhinoDoc CurrentDoc { get; set; }
+        public Rhino.DocObjects.ObjRef[] ObjsRef_Arry { get; set; }
+
+        // Scan Methods ////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////
+
+        public bool Check()
+        {
+            // MM Instance Initiation ///////////////////////////////////////////////////////////////////////
+            Deviant_Inspector.Method_Main mm = new Method_Main
+            {
+                ModelTolerance = CurrentDoc.ModelAbsoluteTolerance,
+                EnlargeRatio = 100
+            };
+
+            // Summary for using Accusation Name ////////////////////////////////////////////////////////////
+            Deviant_Inspector.Summary extrusion_Summary = new Summary(Accusation.Extrusion);
+            Deviant_Inspector.Summary curl_Summary = new Summary(Accusation.Curl);
+            Deviant_Inspector.Summary vertical_Summary = new Summary(Accusation.Vertical);
+            Deviant_Inspector.Summary redundency_Summary = new Summary(Accusation.Redundency);
+
+            // Summary Initiation //////////////////////////////////////////////////////////////////////////
+            int brepIssue_Count = 0;
+            int faceIssue_Count = 0;
+            //int brep_Count = Brep_List.Count;
+            //int face_Count = 0;
+
+            // Scan Operation ///////////////////////////////////////////////////////////////////////////////
+            int i = 0;
+            foreach (Rhino.Geometry.Brep brep in Brep_List)
+            {
+                List<int> facesCriminalIndex_List = new List<int>();
+
+                CurlBrep_Result = false;
+                VerticalBrep_Result = false;
+                RedundencyBrep_Result = false;
+                ExtrusionBrep_Result = false;
+
+                foreach (Rhino.Geometry.BrepFace brepFace in brep.Faces)
+                {
+                    // Flat Surface Iteration //////////////////////////
+                    if (Curl_Toggle.CurrentValue)
+                    {
+                        bool curlFace_Result = mm.CurlCheck(brepFace);
+                        if (curlFace_Result)
+                        {
+                            CurlBrep_Result = true;
+                            curl_Summary.faceCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
+                        }
+                    }
+                    // Vertical Surface Iteration //////////////////////
+                    if (Vertical_Toggle.CurrentValue)
+                    {
+                        bool verticalFace_Result = mm.VerticalCheck(brepFace);
+                        if (verticalFace_Result)
+                        {
+                            VerticalBrep_Result = true;
+                            vertical_Summary.faceCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
+                        }
+                    }
+                    // Extruded Surface Iteration //////////////////////
+                    if (Extrusion_Toggle.CurrentValue)
+                    {
+                        bool extrusionFace_Result = mm.ExtrusionCheck(brepFace);
+                        if (extrusionFace_Result)
+                        {
+                            ExtrusionBrep_Result = true;
+                            extrusion_Summary.faceCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
+                        }
+                    }
+                    // Extruded Surface Iteration //////////////////////
+                    if (Redundency_Toggle.CurrentValue)
+                    {
+                        bool redundencyFace_Result = mm.RedundencyCheck(brepFace);
+                        if (redundencyFace_Result)
+                        {
+                            RedundencyBrep_Result = true;
+                            redundency_Summary.faceCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
+                        }
+                    }
+
+                    // Color Change & Commit ////////////////////////////////
+                    if (CurlBrep_Result ||
+                        VerticalBrep_Result ||
+                        RedundencyBrep_Result ||
+                        ExtrusionBrep_Result
+                       )
+                    {
+                        facesCriminalIndex_List = facesCriminalIndex_List.Distinct().ToList();
+                        brepIssue_Count++;
+                        faceIssue_Count += facesCriminalIndex_List.Count;
+                        mm.ObjColorRevise(Color, brep, facesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
+                        CurrentDoc.Objects.Replace(ObjsRef_Arry[i], newBrep);
+
+                    }
+                }
+
+                i++;
+            }
+            return true;
+        }
+
+    }
+
 }
