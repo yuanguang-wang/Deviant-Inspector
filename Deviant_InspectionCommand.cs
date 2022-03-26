@@ -32,30 +32,35 @@ namespace Deviant_Inspector
             getObjects.EnableClearObjectsOnEntry(false);
             getObjects.EnableUnselectObjectsOnExit(false);
 
-            // MM Instance Initiation ///////////////////////////////////////////////////////////////////////////
-            Deviant_Inspector.Method_Main mm = new Method_Main
-            {
-                ModelTolerance = doc.ModelAbsoluteTolerance,
-                EnlargeRatio = 100
-            };
-
+            
             // Summary for using Accusation Name ////////////////////////////////////////////////////////////
             Deviant_Inspector.Summary extrusion_Summary = new Summary(Accusation.Extrusion);
             Deviant_Inspector.Summary curl_Summary = new Summary(Accusation.Curl);
             Deviant_Inspector.Summary vertical_Summary = new Summary(Accusation.Vertical);
             Deviant_Inspector.Summary redundency_Summary = new Summary(Accusation.Redundency);
 
-            /////////////////////////////////////////////////////////////////////////////////////////////////////
             // Set Options///////////////////////////////////////////////////////////////////////////////////////
             Rhino.Input.Custom.OptionToggle vertical_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle curl_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle extrusion_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle redundency_Toggle = new Rhino.Input.Custom.OptionToggle(false, "Off", "On");
             Rhino.Input.Custom.OptionToggle block_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Exclude", "Include");
-            
-            // Remarks on method AddOptionToggle
-            // Body: str Must only consist of letters and numbers (no characters list periods, spaces, or dashes))
-            // Type OptionToggle need a ref prefix
+
+            // MM Instance Initiation ///////////////////////////////////////////////////////////////////////////
+            Deviant_Inspector.Method_Main mm = new Method_Main
+            {
+                ModelTolerance = doc.ModelAbsoluteTolerance,
+                EnlargeRatio = 100,
+
+                Curl_Toggle = curl_Toggle.CurrentValue,
+                Vertical_Toggle = vertical_Toggle.CurrentValue,
+                Extrusion_Toggle = extrusion_Toggle.CurrentValue,
+                Redundency_Toggle = redundency_Toggle.CurrentValue
+            };
+
+            // Remarks on method AddOptionToggle ////////////////////////////////////////////////////////////////
+            // Body: str Must only consist of letters and numbers (no characters list periods, spaces, or dashes)
+            // Type OptionToggle need a ref prefix //////////////////////////////////////////////////////////////
             getObjects.AddOptionToggle(Accusation.Vertical, ref vertical_Toggle);
             getObjects.AddOptionToggle(Accusation.Curl, ref curl_Toggle);
             getObjects.AddOptionToggle(Accusation.Extrusion, ref extrusion_Toggle);
@@ -160,61 +165,23 @@ namespace Deviant_Inspector
             foreach (Rhino.Geometry.Brep brep in breps_List)
             {
                 face_Count += brep.Faces.Count;
-                List<int> facesCriminalIndex_List = new List<int>();
 
-                bool curlBrep_Result = false;
-                bool verticalBrep_Result = false;
-                bool redundencyBrep_Result = false;
-                bool extrusionBrep_Result = false;
+                mm.Diagnose(brep,
+                            out bool curlBrep_Result,
+                            out bool verticalBrep_Result,
+                            out bool redundencyBrep_Result,
+                            out bool extrusionBrep_Result,
+                            out int curlCriminalCount,
+                            out int verticalCriminalCount,
+                            out int extrusionCriminalCount,
+                            out int redundencyCriminalCount,
+                            out List<int> facesCriminalIndex_List);
 
-                foreach (Rhino.Geometry.BrepFace brepFace in brep.Faces)
-                {
-                    // Flat Surface Iteration //////////////////////////
-                    if (curl_Toggle.CurrentValue)
-                    {
-                        bool curlFace_Result = mm.CurlCheck(brepFace);
-                        if (curlFace_Result)
-                        {
-                            curlBrep_Result = true;
-                            curl_Summary.faceCriminalCount++;
-                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
-                        }
-                    }
-                    // Vertical Surface Iteration //////////////////////
-                    if (vertical_Toggle.CurrentValue)
-                    {
-                        bool verticalFace_Result = mm.VerticalCheck(brepFace);
-                        if (verticalFace_Result)
-                        {
-                            verticalBrep_Result = true;
-                            vertical_Summary.faceCriminalCount++;
-                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
-                        }
-                    }
-                    // Extruded Surface Iteration //////////////////////
-                    if (extrusion_Toggle.CurrentValue)
-                    {
-                        bool extrusionFace_Result = mm.ExtrusionCheck(brepFace);
-                        if (extrusionFace_Result)
-                        {
-                            extrusionBrep_Result = true;
-                            extrusion_Summary.faceCriminalCount++;
-                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
-                        }
-                    }
-                    // Extruded Surface Iteration //////////////////////
-                    if (redundency_Toggle.CurrentValue)
-                    {
-                        bool redundencyFace_Result = mm.RedundencyCheck(brepFace);
-                        if (redundencyFace_Result)
-                        {
-                            redundencyBrep_Result = true;
-                            redundency_Summary.faceCriminalCount++;
-                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
-                        }
-                    }
+                curl_Summary.faceCriminalCount += curlCriminalCount;
+                vertical_Summary.faceCriminalCount += verticalCriminalCount;
+                extrusion_Summary.faceCriminalCount += extrusionCriminalCount;
+                redundency_Summary.faceCriminalCount += redundencyCriminalCount;
 
-                }
                 // Name Revision ///////////////////////////////////////
                 if (curlBrep_Result)
                 {
@@ -245,7 +212,6 @@ namespace Deviant_Inspector
                     extrusionBrep_Result
                    )
                 {
-                    facesCriminalIndex_List = facesCriminalIndex_List.Distinct().ToList();
                     brepIssue_Count++;
                     faceIssue_Count += facesCriminalIndex_List.Count;
                     mm.ObjColorRevise(color, brep, facesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
@@ -254,6 +220,57 @@ namespace Deviant_Inspector
                 }
 
                 i++;
+            }
+
+            // Block Iteration //////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////////////////////////////////////////
+            if (block_Toggle.CurrentValue)
+            {
+                foreach (Rhino.DocObjects.InstanceDefinition iDef in iDef_List)
+                {
+                    Rhino.DocObjects.RhinoObject[] rhObj_Array = iDef.GetObjects();
+                    List<Rhino.Geometry.GeometryBase> geoBase_List = new List<Rhino.Geometry.GeometryBase>();
+                    List<Rhino.Geometry.GeometryBase> geoElse_List = new List<Rhino.Geometry.GeometryBase>();
+                    List<Rhino.Geometry.GeometryBase> brep_List = new List<Rhino.Geometry.GeometryBase>();
+
+                    // Instance Definition convert to Breps /////////////////////////////////////////////////////
+                    foreach (Rhino.DocObjects.RhinoObject rhObj in rhObj_Array)
+                    {
+                        Rhino.Geometry.GeometryBase gb = rhObj.Geometry;
+                        if (gb.ObjectType == Rhino.DocObjects.ObjectType.Brep)
+                        {
+                            if (gb.HasBrepForm)
+                            {
+                                breps_List.Add(Rhino.Geometry.Brep.TryConvertBrep(gb));
+                            }
+
+                        }
+                        else
+                        {
+                            geoElse_List.Add(gb);
+                        }
+                    }
+
+                    // Brep List Inspection /////////////////////////////////////////////////////////////////////
+                    foreach (Rhino.Geometry.Brep brep in brep_List)
+                    {
+                        face_Count += brep.Faces.Count;
+                        mm.Diagnose(brep,
+                                    out bool curlBrep_Result,
+                                    out bool verticalBrep_Result,
+                                    out bool redundencyBrep_Result,
+                                    out bool extrusionBrep_Result,
+                                    out int curlCriminalCount,
+                                    out int verticalCriminalCount,
+                                    out int extrusionCriminalCount,
+                                    out int redundencyCriminalCount,
+                                    out List<int> facesCriminalIndex_List);
+
+
+
+                    }
+                }
+
             }
 
             // Summary Dialog Information Collection ////////////////////////////////////////////////////////
