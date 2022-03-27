@@ -10,6 +10,7 @@ def test_command():
     objref = go.Objects()
     geo = []
     tran = []
+    print(go.ObjectCount)
     for i in range(len(objref)):
         geo.append(objref[i].Geometry())
         #print(type(geo[i]))

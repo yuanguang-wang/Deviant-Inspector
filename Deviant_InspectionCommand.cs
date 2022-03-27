@@ -20,8 +20,8 @@ namespace Deviant_Inspector
 
         protected override Rhino.Commands.Result RunCommand(RhinoDoc doc, Rhino.Commands.RunMode mode)
         {
-            /////////////////////////////////////////////////////////////////////////////////////////////////////
-            // Initiation ///////////////////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            // Initiation //////////////////////////////////////////////////////////////////////////////////////////////
             Rhino.Input.Custom.GetObject getObjects = new Rhino.Input.Custom.GetObject
             {
                 GeometryFilter = Rhino.DocObjects.ObjectType.Brep | Rhino.DocObjects.ObjectType.InstanceReference,
@@ -33,20 +33,20 @@ namespace Deviant_Inspector
             getObjects.EnableUnselectObjectsOnExit(false);
 
             
-            // Summary for using Accusation Name ////////////////////////////////////////////////////////////
+            // Summary for using Accusation Name ///////////////////////////////////////////////////////////////////////
             Deviant_Inspector.Summary extrusion_Summary = new Summary(Accusation.Extrusion);
             Deviant_Inspector.Summary curl_Summary = new Summary(Accusation.Curl);
             Deviant_Inspector.Summary vertical_Summary = new Summary(Accusation.Vertical);
             Deviant_Inspector.Summary redundency_Summary = new Summary(Accusation.Redundency);
 
-            // Set Options///////////////////////////////////////////////////////////////////////////////////////
+            // Set Options//////////////////////////////////////////////////////////////////////////////////////////////
             Rhino.Input.Custom.OptionToggle vertical_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle curl_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle extrusion_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle redundency_Toggle = new Rhino.Input.Custom.OptionToggle(false, "Off", "On");
             Rhino.Input.Custom.OptionToggle block_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Exclude", "Include");
 
-            // MM Instance Initiation ///////////////////////////////////////////////////////////////////////////
+            // MM Instance Initiation //////////////////////////////////////////////////////////////////////////////////
             Deviant_Inspector.Method_Main mm = new Method_Main
             {
                 ModelTolerance = doc.ModelAbsoluteTolerance,
@@ -58,9 +58,9 @@ namespace Deviant_Inspector
                 Redundency_Toggle = redundency_Toggle.CurrentValue
             };
 
-            // Remarks on method AddOptionToggle ////////////////////////////////////////////////////////////////
-            // Body: str Must only consist of letters and numbers (no characters list periods, spaces, or dashes)
-            // Type OptionToggle need a ref prefix //////////////////////////////////////////////////////////////
+            // Remarks on method AddOptionToggle ///////////////////////////////////////////////////////////////////////
+            // Body: str Must only consist of letters and numbers (no characters list periods, spaces, or dashes)///////
+            // Type OptionToggle need a ref prefix /////////////////////////////////////////////////////////////////////
             getObjects.AddOptionToggle(Accusation.Vertical, ref vertical_Toggle);
             getObjects.AddOptionToggle(Accusation.Curl, ref curl_Toggle);
             getObjects.AddOptionToggle(Accusation.Extrusion, ref extrusion_Toggle);
@@ -70,7 +70,7 @@ namespace Deviant_Inspector
             doc.Objects.UnselectAll();
             doc.Views.Redraw();
 
-            // Option Setting Loop ////////////////////////////////////////////////////////////////////////
+            // Option Setting Loop /////////////////////////////////////////////////////////////////////////////////////
             getObjects.SetCommandPrompt("Select the B-Reps to be Inspected");
             while (true)
             {
@@ -84,7 +84,7 @@ namespace Deviant_Inspector
                 else if (getResult == Rhino.Input.GetResult.Object) 
                 {
                     RhinoApp.WriteLine("Brep Selection Finished; Select One Color to be Drawn on Deviants, Default is Red");
-                    getObjects.EnablePreSelect(true, true);
+                    //getObjects.EnablePreSelect(true, true);
                     break;
                 }
                 else 
@@ -96,7 +96,7 @@ namespace Deviant_Inspector
 
             }
 
-            // All Off Toggle Exception ///////////////////////////////////////////////////////////////////
+            // All Off Toggle Exception ////////////////////////////////////////////////////////////////////////////////
             bool toggleAllValue = vertical_Toggle.CurrentValue   ||
                                   redundency_Toggle.CurrentValue ||
                                   curl_Toggle.CurrentValue       ||
@@ -108,7 +108,7 @@ namespace Deviant_Inspector
                 return Rhino.Commands.Result.Cancel;
             }
 
-            // Brep Collection ////////////////////////////////////////////////////////////////////////////
+            // Brep Collection /////////////////////////////////////////////////////////////////////////////////////////
             getObjects.SetCommandPrompt("Select the B-Reps to be Inspected");
             getObjects.GetMultiple(1,0);
             if (getObjects.CommandResult() != Rhino.Commands.Result.Success)
@@ -120,7 +120,7 @@ namespace Deviant_Inspector
             Rhino.DocObjects.ObjRef[] objsRef_Arry = getObjects.Objects();
             doc.Objects.UnselectAll();
 
-            // Color Set ///////////////////////////////////////////////////////////////////////////////////
+            // Color Set ///////////////////////////////////////////////////////////////////////////////////////////////
             System.Drawing.Color color = System.Drawing.Color.Red;
             bool result_Color = Rhino.UI.Dialogs.ShowColorDialog(ref color, true, "Select One Color to be Drawn on Deviants, Default is Red");
             if (result_Color == false)
@@ -130,17 +130,20 @@ namespace Deviant_Inspector
                 return Rhino.Commands.Result.Cancel;
             }
 
-            // Totally Obj List with Brep % RhObj //////////////////////////////////////////////////////////
+            // Totally Obj List with Brep % RhObj //////////////////////////////////////////////////////////////////////
             List<Rhino.Geometry.Brep> breps_List = new List<Rhino.Geometry.Brep>();
             List<Rhino.DocObjects.RhinoObject> brepObjs_List = new List<Rhino.DocObjects.RhinoObject>();
             List<Rhino.DocObjects.InstanceDefinition> iDef_List = new List<Rhino.DocObjects.InstanceDefinition>();
             
-            // Dispatch IRef and Brep //////////////////////////////////////////////////////////////////////
+            // Dispatch IRef and Brep //////////////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
             foreach (Rhino.DocObjects.ObjRef objRef in objsRef_Arry)
             {
-                if (objRef.Object() is Rhino.DocObjects.InstanceObject rhObj)
+                RhinoApp.WriteLine(objsRef_Arry.Length.ToString());
+                if (objRef.Object() is Rhino.DocObjects.InstanceObject iRefObj)
                 {
-                    Rhino.DocObjects.InstanceDefinition iRef = rhObj.InstanceDefinition;
+                    RhinoApp.WriteLine("IRef");
+                    Rhino.DocObjects.InstanceDefinition iRef = iRefObj.InstanceDefinition;
                     if (!iDef_List.Contains(iRef))
                     {
                         iDef_List.Add(iRef);
@@ -148,19 +151,20 @@ namespace Deviant_Inspector
                 }
                 else
                 {
+                    RhinoApp.WriteLine("Brep");
                     breps_List.Add(objRef.Brep());
                     brepObjs_List.Add(objRef.Object());
                 }
             }
 
-            // Summary Initiation //////////////////////////////////////////////////////////////////////////
+            // Summary Initiation //////////////////////////////////////////////////////////////////////////////////////
             int brepIssue_Count = 0;
             int faceIssue_Count = 0;
             int brep_Count = breps_List.Count;
             int face_Count = 0;
 
-            // Change the Color and Name ///////////////////////////////////////////////////////////////////
-            // Iterate All brepObjs in List ////////////////////////////////////////////////////////////////
+            // Change the Color and Name ///////////////////////////////////////////////////////////////////////////////
+            // Iterate All brepObjs in List ////////////////////////////////////////////////////////////////////////////
             int i = 0;
             foreach (Rhino.Geometry.Brep brep in breps_List)
             {
@@ -182,7 +186,7 @@ namespace Deviant_Inspector
                 extrusion_Summary.faceCriminalCount += extrusionCriminalCount;
                 redundency_Summary.faceCriminalCount += redundencyCriminalCount;
 
-                // Name Revision ///////////////////////////////////////
+                // Name Revision ///////////////////////////////////////////////////////////////////////////////////////
                 if (curlBrep_Result)
                 {
                     mm.ObjNameRevise(brepObjs_List[i], curl_Summary.accusationObjName);
@@ -203,9 +207,9 @@ namespace Deviant_Inspector
                     mm.ObjNameRevise(brepObjs_List[i], redundency_Summary.accusationObjName);
                     redundency_Summary.brepCriminalCount++;
                 }
-                // Commit Changes ///////////////////////////////////////
+                // Commit Changes //////////////////////////////////////////////////////////////////////////////////////
                 brepObjs_List[i].CommitChanges();
-                // Color Change & Commit ////////////////////////////////
+                // Color Change & Commit ///////////////////////////////////////////////////////////////////////////////
                 if (curlBrep_Result       || 
                     verticalBrep_Result   || 
                     redundencyBrep_Result || 
@@ -222,8 +226,8 @@ namespace Deviant_Inspector
                 i++;
             }
 
-            // Block Iteration //////////////////////////////////////////////////////////////////////////////
-            /////////////////////////////////////////////////////////////////////////////////////////////////
+            // Block Iteration /////////////////////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
             if (block_Toggle.CurrentValue)
             {
                 foreach (Rhino.DocObjects.InstanceDefinition iDef in iDef_List)
@@ -233,7 +237,7 @@ namespace Deviant_Inspector
                     List<Rhino.Geometry.GeometryBase> geoElse_List = new List<Rhino.Geometry.GeometryBase>();
                     List<Rhino.Geometry.GeometryBase> brep_List = new List<Rhino.Geometry.GeometryBase>();
 
-                    // Instance Definition convert to Breps /////////////////////////////////////////////////////
+                    // Instance Definition convert to Breps ////////////////////////////////////////////////////////////
                     foreach (Rhino.DocObjects.RhinoObject rhObj in rhObj_Array)
                     {
                         Rhino.Geometry.GeometryBase gb = rhObj.Geometry;
@@ -251,7 +255,7 @@ namespace Deviant_Inspector
                         }
                     }
 
-                    // Brep List Inspection /////////////////////////////////////////////////////////////////////
+                    // Brep List Inspection ////////////////////////////////////////////////////////////////////////////
                     foreach (Rhino.Geometry.Brep brep in brep_List)
                     {
                         face_Count += brep.Faces.Count;
@@ -273,7 +277,7 @@ namespace Deviant_Inspector
 
             }
 
-            // Summary Dialog Information Collection ////////////////////////////////////////////////////////
+            // Summary Dialog Information Collection ///////////////////////////////////////////////////////////////////
             string breakLine = "------------------------------------------------------ \n";
             string faceCount_String = "The Total Faces Selected Count: " + face_Count.ToString() + "\n";
             string brepCount_String = "The Total Breps Selected Count: " + brep_Count.ToString() + "\n";
