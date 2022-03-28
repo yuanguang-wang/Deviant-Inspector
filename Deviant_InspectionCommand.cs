@@ -71,6 +71,8 @@ namespace Deviant_Inspector
             doc.Views.Redraw();
 
             // Option Setting Loop /////////////////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            
             getObjects.SetCommandPrompt("Select the B-Reps to be Inspected");
             while (true)
             {
@@ -84,7 +86,7 @@ namespace Deviant_Inspector
                 else if (getResult == Rhino.Input.GetResult.Object) 
                 {
                     RhinoApp.WriteLine("Brep Selection Finished; Select One Color to be Drawn on Deviants, Default is Red");
-                    //getObjects.EnablePreSelect(true, true);
+                    getObjects.EnablePreSelect(true, true);
                     break;
                 }
                 else 
@@ -109,8 +111,6 @@ namespace Deviant_Inspector
             }
 
             // Brep Collection /////////////////////////////////////////////////////////////////////////////////////////
-            getObjects.SetCommandPrompt("Select the B-Reps to be Inspected");
-            getObjects.GetMultiple(1,0);
             if (getObjects.CommandResult() != Rhino.Commands.Result.Success)
             {
                 RhinoApp.WriteLine("[COMMAND EXIT] Nothing is Selected to be Inspected");
@@ -122,7 +122,10 @@ namespace Deviant_Inspector
 
             // Color Set ///////////////////////////////////////////////////////////////////////////////////////////////
             System.Drawing.Color color = System.Drawing.Color.Red;
-            bool result_Color = Rhino.UI.Dialogs.ShowColorDialog(ref color, true, "Select One Color to be Drawn on Deviants, Default is Red");
+            bool result_Color = Rhino.UI.Dialogs.ShowColorDialog(ref color, 
+                                                                 true, 
+                                                                "Select One Color to be Drawn on Deviants, " +
+                                                                "Default is Red");
             if (result_Color == false)
             {
                 RhinoApp.WriteLine("[COMMAND EXIT] Deviant Color is not Specified");
@@ -134,26 +137,29 @@ namespace Deviant_Inspector
             List<Rhino.Geometry.Brep> breps_List = new List<Rhino.Geometry.Brep>();
             List<Rhino.DocObjects.RhinoObject> brepObjs_List = new List<Rhino.DocObjects.RhinoObject>();
             List<Rhino.DocObjects.InstanceDefinition> iDef_List = new List<Rhino.DocObjects.InstanceDefinition>();
-            
+            List<Rhino.DocObjects.ObjRef> brepRef_List = new List<Rhino.DocObjects.ObjRef>();
+
             // Dispatch IRef and Brep //////////////////////////////////////////////////////////////////////////////////
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            
+            string selectedObjsCount = objsRef_Arry.Length.ToString();
+            RhinoApp.WriteLine(selectedObjsCount + " Breps are Selected");
+            
             foreach (Rhino.DocObjects.ObjRef objRef in objsRef_Arry)
             {
-                RhinoApp.WriteLine(objsRef_Arry.Length.ToString());
                 if (objRef.Object() is Rhino.DocObjects.InstanceObject iRefObj)
                 {
-                    RhinoApp.WriteLine("IRef");
-                    Rhino.DocObjects.InstanceDefinition iRef = iRefObj.InstanceDefinition;
-                    if (!iDef_List.Contains(iRef))
+                    Rhino.DocObjects.InstanceDefinition iDef = iRefObj.InstanceDefinition;
+                    if (!iDef_List.Contains(iDef))
                     {
-                        iDef_List.Add(iRef);
+                        iDef_List.Add(iDef);
                     }
                 }
                 else
                 {
-                    RhinoApp.WriteLine("Brep");
                     breps_List.Add(objRef.Brep());
                     brepObjs_List.Add(objRef.Object());
+                    brepRef_List.Add(objRef);
                 }
             }
 
@@ -219,7 +225,7 @@ namespace Deviant_Inspector
                     brepIssue_Count++;
                     faceIssue_Count += facesCriminalIndex_List.Count;
                     mm.ObjColorRevise(color, brep, facesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
-                    doc.Objects.Replace(objsRef_Arry[i], newBrep);
+                    doc.Objects.Replace(brepRef_List[i], newBrep);
 
                 }
 
