@@ -73,7 +73,7 @@ namespace Deviant_Inspector
         public bool ObjColorRevise(System.Drawing.Color color, 
                                    Rhino.Geometry.Brep brep, 
                                    List<int> criminalIndex_List, 
-                                   out Rhino.Geometry.Brep newBrep)
+                               out Rhino.Geometry.Brep newBrep)
         {
             newBrep = brep.DuplicateBrep();
             foreach (int i in criminalIndex_List)
@@ -86,7 +86,7 @@ namespace Deviant_Inspector
 
         public bool ObjColorRollback(Rhino.Geometry.Brep brep, 
                                      List<int> criminalIndex_List, 
-                                     out Rhino.Geometry.Brep newBrep)
+                                 out Rhino.Geometry.Brep newBrep)
         {
             newBrep = brep.DuplicateBrep();
             foreach (int i in criminalIndex_List)
