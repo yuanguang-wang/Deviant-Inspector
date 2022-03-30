@@ -11,6 +11,8 @@ def test_command():
     go.GetMultiple(1, 0)
     objref = go.Objects()
     geo = []
+    tran = []
+    print(go.ObjectCount)
     idefs= []
     for i in range(len(objref)):
         geo.append(objref[i].Object())

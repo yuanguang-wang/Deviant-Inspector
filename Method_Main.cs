@@ -21,6 +21,11 @@ namespace Deviant_Inspector
         // Public Attributes //////////////////////////////////////////////////////////////////
         public double ModelTolerance { get; set; }
         public int EnlargeRatio { get; set; }
+        public bool Curl_Toggle { get; set; }
+        public bool Vertical_Toggle { get; set; }
+        public bool Extrusion_Toggle { get; set; }
+        public bool Redundency_Toggle { get; set; }
+
 
         //Methods /////////////////////////////////////////////////////////////////////////////
         public bool ObjNameRevise(Rhino.DocObjects.RhinoObject rhObj, string accusation)
@@ -65,7 +70,10 @@ namespace Deviant_Inspector
             return true;
         }
 
-        public bool ObjColorRevise(System.Drawing.Color color, Rhino.Geometry.Brep brep, List<int> criminalIndex_List, out Rhino.Geometry.Brep newBrep)
+        public bool ObjColorRevise(System.Drawing.Color color, 
+                                   Rhino.Geometry.Brep brep, 
+                                   List<int> criminalIndex_List, 
+                                   out Rhino.Geometry.Brep newBrep)
         {
             newBrep = brep.DuplicateBrep();
             foreach (int i in criminalIndex_List)
@@ -76,7 +84,9 @@ namespace Deviant_Inspector
             return true;
         }
 
-        public bool ObjColorRollback(Rhino.Geometry.Brep brep, List<int> criminalIndex_List, out Rhino.Geometry.Brep newBrep)
+        public bool ObjColorRollback(Rhino.Geometry.Brep brep, 
+                                     List<int> criminalIndex_List, 
+                                     out Rhino.Geometry.Brep newBrep)
         {
             newBrep = brep.DuplicateBrep();
             foreach (int i in criminalIndex_List)
@@ -176,8 +186,19 @@ namespace Deviant_Inspector
         public bool ExtrusionCheck(Rhino.Geometry.BrepFace bFace)
         {
             // Avoiding Bad Objects ////////////////////////////////////////////////////////
-            Rhino.Geometry.Curve[] loop = bFace.OuterLoop.To3dCurve().DuplicateSegments();
-            if (loop.Length <= 2)
+            Rhino.Geometry.BrepLoop loop = bFace.OuterLoop;
+            Rhino.Geometry.Curve[] segs;
+            
+            if (loop != null)
+            {
+                segs = loop.To3dCurve().DuplicateSegments();
+            }
+            else
+            {
+                return false;
+            }
+                
+            if (segs.Length <= 2)
             {
                 return false;
             }
@@ -185,7 +206,7 @@ namespace Deviant_Inspector
             // Point of the Outer Loop Collection //////////////////////////////////////////
             double modelToleranceSquare = this.ModelTolerance * this.ModelTolerance;
             List<Rhino.Geometry.Point3d> pt_List = new List<Rhino.Geometry.Point3d>();
-            foreach (Rhino.Geometry.Curve segment in loop)
+            foreach (Rhino.Geometry.Curve segment in segs)
             {
                 if (!segment.IsLinear())
                 {
@@ -228,7 +249,89 @@ namespace Deviant_Inspector
             return false;
         }
 
+        public bool Diagnose(Rhino.Geometry.Brep brep, 
+                             out bool curlBrep_Result, 
+                             out bool verticalBrep_Result, 
+                             out bool redundencyBrep_Result, 
+                             out bool extrusionBrep_Result, 
+                             out int curlCriminalCount, 
+                             out int verticalCriminalCount, 
+                             out int extrusionCriminalCount, 
+                             out int redundencyCriminalCount, 
+                             out List<int> facesCriminalIndex_List)
+        {
+            curlBrep_Result = false;
+            verticalBrep_Result = false;
+            redundencyBrep_Result = false;
+            extrusionBrep_Result = false;
+
+            curlCriminalCount = 0;
+            verticalCriminalCount = 0;
+            extrusionCriminalCount = 0;
+            redundencyCriminalCount = 0;
+
+            facesCriminalIndex_List = new List<int>();
+
+            foreach (Rhino.Geometry.BrepFace brepFace in brep.Faces)
+            {
+                if (brepFace != null)
+                {
+                    // Flat Surface Iteration //////////////////////////
+                    if (Curl_Toggle)
+                    {
+                        bool curlFace_Result = this.CurlCheck(brepFace);
+                        if (curlFace_Result)
+                        {
+                            curlBrep_Result = true;
+                            curlCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
+                        }
+                    }
+                    // Vertical Surface Iteration //////////////////////
+                    if (Vertical_Toggle)
+                    {
+                        bool verticalFace_Result = this.VerticalCheck(brepFace);
+                        if (verticalFace_Result)
+                        {
+                            verticalBrep_Result = true;
+                            verticalCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
+                        }
+                    }
+                    // Extruded Surface Iteration //////////////////////
+                    if (Extrusion_Toggle)
+                    {
+                        bool extrusionFace_Result = this.ExtrusionCheck(brepFace);
+                        if (extrusionFace_Result)
+                        {
+                            extrusionBrep_Result = true;
+                            extrusionCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
+                        }
+                    }
+                    // Redundency Surface Iteration //////////////////////
+                    if (Redundency_Toggle)
+                    {
+                        bool redundencyFace_Result = this.RedundencyCheck(brepFace);
+                        if (redundencyFace_Result)
+                        {
+                            redundencyBrep_Result = true;
+                            redundencyCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
+                        }
+                    }
+
+                    facesCriminalIndex_List = facesCriminalIndex_List.Distinct().ToList();
+
+                }
+
+            }
+
+            return true;
+        }
+
     }
+
 
     public class Summary
     {
@@ -273,5 +376,7 @@ namespace Deviant_Inspector
         public static string Vertical = "Vertical";
         public static string Redundency = "Redundency";
     }
+
+
 
 }
