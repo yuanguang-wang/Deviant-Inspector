@@ -139,13 +139,10 @@ namespace Deviant_Inspector
             List<Rhino.Geometry.Brep> breps_List = new List<Rhino.Geometry.Brep>();
             List<Rhino.DocObjects.RhinoObject> brepObjs_List = new List<Rhino.DocObjects.RhinoObject>();
             List<Rhino.DocObjects.InstanceDefinition> iDef_List = new List<Rhino.DocObjects.InstanceDefinition>();
-            List<Rhino.DocObjects.ObjRef> brepRef_List = new List<Rhino.DocObjects.ObjRef>();
+            List<Rhino.DocObjects.ObjRef> objRef_List = new List<Rhino.DocObjects.ObjRef>();
 
             // Dispatch IRef and Brep //////////////////////////////////////////////////////////////////////////////////
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            
-            string selectedObjsCount = objsRef_Arry.Length.ToString();
-            RhinoApp.WriteLine(selectedObjsCount + " Brep(s) are Selected");
             
             foreach (Rhino.DocObjects.ObjRef objRef in objsRef_Arry)
             {
@@ -161,7 +158,7 @@ namespace Deviant_Inspector
                 {
                     breps_List.Add(objRef.Brep());
                     brepObjs_List.Add(objRef.Object());
-                    brepRef_List.Add(objRef);
+                    objRef_List.Add(objRef);
                 }
             }
 
@@ -176,23 +173,32 @@ namespace Deviant_Inspector
             int i = 0;
             foreach (Rhino.Geometry.Brep brep in breps_List)
             {
-                face_Count += brep.Faces.Count;
+                bool curlBrep_Result = false;
+                bool verticalBrep_Result = false;
+                bool redundencyBrep_Result = false;
+                bool extrusionBrep_Result = false;
+                List<int> facesCriminalIndex_List = new List<int>();
 
-                mm.Diagnose(brep,
-                            out bool curlBrep_Result,
-                            out bool verticalBrep_Result,
-                            out bool redundencyBrep_Result,
-                            out bool extrusionBrep_Result,
-                            out int curlCriminalCount,
-                            out int verticalCriminalCount,
-                            out int extrusionCriminalCount,
-                            out int redundencyCriminalCount,
-                            out List<int> facesCriminalIndex_List);
+                if (brep != null)
+                {
+                    face_Count += brep.Faces.Count;
 
-                curl_Summary.faceCriminalCount += curlCriminalCount;
-                vertical_Summary.faceCriminalCount += verticalCriminalCount;
-                extrusion_Summary.faceCriminalCount += extrusionCriminalCount;
-                redundency_Summary.faceCriminalCount += redundencyCriminalCount;
+                    mm.Diagnose(brep,
+                                out curlBrep_Result,
+                                out verticalBrep_Result,
+                                out redundencyBrep_Result,
+                                out extrusionBrep_Result,
+                                out int curlCriminalCount,
+                                out int verticalCriminalCount,
+                                out int extrusionCriminalCount,
+                                out int redundencyCriminalCount,
+                                out facesCriminalIndex_List);
+
+                    curl_Summary.faceCriminalCount += curlCriminalCount;
+                    vertical_Summary.faceCriminalCount += verticalCriminalCount;
+                    extrusion_Summary.faceCriminalCount += extrusionCriminalCount;
+                    redundency_Summary.faceCriminalCount += redundencyCriminalCount;
+                }                
 
                 // Name Revision ///////////////////////////////////////////////////////////////////////////////////////
                 if (curlBrep_Result)
@@ -219,15 +225,12 @@ namespace Deviant_Inspector
                 brepObjs_List[i].CommitChanges();
                 
                 // Color Change & Commit ///////////////////////////////////////////////////////////////////////////////
-                if (curlBrep_Result       || 
-                    verticalBrep_Result   || 
-                    redundencyBrep_Result || 
-                    extrusionBrep_Result)
+                if (facesCriminalIndex_List.Count != 0)
                 {
                     brepIssue_Count++;
                     faceIssue_Count += facesCriminalIndex_List.Count;
                     mm.ObjColorRevise(color, brep, facesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
-                    doc.Objects.Replace(brepRef_List[i], newBrep);
+                    doc.Objects.Replace(objRef_List[i], newBrep);
 
                 }
 
@@ -241,75 +244,102 @@ namespace Deviant_Inspector
                 foreach (Rhino.DocObjects.InstanceDefinition iDef in iDef_List)
                 {
                     Rhino.DocObjects.RhinoObject[] rhObj_Array = iDef.GetObjects();
-                    List<Rhino.Geometry.GeometryBase> geoElse_List = new List<Rhino.Geometry.GeometryBase>();
-                    List<Rhino.Geometry.GeometryBase> iBrep_List = new List<Rhino.Geometry.GeometryBase>();
-                    List<Rhino.Geometry.GeometryBase> newBrep_List = new List<Rhino.Geometry.GeometryBase>();
-                    List<Rhino.Geometry.GeometryBase> newGB_List = new List<Rhino.Geometry.GeometryBase>();
+                    
+                    List<Rhino.Geometry.GeometryBase> geobaseElse_List = new List<Rhino.Geometry.GeometryBase>();
+                    
+                    List<Rhino.Geometry.GeometryBase> brepInDef_List = new List<Rhino.Geometry.GeometryBase>();                    
+                    List<Rhino.Geometry.GeometryBase> brepNew_List = new List<Rhino.Geometry.GeometryBase>();
+                    List<Rhino.Geometry.GeometryBase> geobaseNew_List = new List<Rhino.Geometry.GeometryBase>();
+                    
+                    List<Rhino.DocObjects.ObjectAttributes> attrElse_List = new List<Rhino.DocObjects.ObjectAttributes>();
+                    List<Rhino.DocObjects.ObjectAttributes> attrBrep_List = new List<Rhino.DocObjects.ObjectAttributes>();
+                    List<Rhino.DocObjects.ObjectAttributes> attrNew_List = new List<Rhino.DocObjects.ObjectAttributes>();
 
                     // Instance Definition convert to Breps ////////////////////////////////////////////////////////////
                     foreach (Rhino.DocObjects.RhinoObject rhObj in rhObj_Array)
                     {
+                        Rhino.DocObjects.ObjectAttributes objAttr = rhObj.Attributes;
                         Rhino.Geometry.GeometryBase gb = rhObj.Geometry;
                         if (gb.ObjectType == Rhino.DocObjects.ObjectType.Brep)
                         {
                             if (gb.HasBrepForm)
                             {
-                                iBrep_List.Add(Rhino.Geometry.Brep.TryConvertBrep(gb));                                
+                                brepInDef_List.Add(Rhino.Geometry.Brep.TryConvertBrep(gb));
+                                attrBrep_List.Add(objAttr);
                             }
                         }
                         else
                         {
-                            geoElse_List.Add(gb);
+                            geobaseElse_List.Add(gb);
+                            attrElse_List.Add(objAttr);
                         }
                     }
 
                     // Summary /////////////////////////////////////////////////////////////////////////////////////////
-                    if (iBrep_List.Count != 0)
+                    if (brepInDef_List.Count != 0)
                     {
-                        brep_Count += iBrep_List.Count;
+                        brep_Count += brepInDef_List.Count;
                     }
 
                     // Brep List Inspection ////////////////////////////////////////////////////////////////////////////
                     int brepIndex = 0;
-                    foreach (Rhino.Geometry.Brep brep in iBrep_List)
+                    foreach (Rhino.Geometry.Brep brep in brepInDef_List)
                     {
-                        face_Count += brep.Faces.Count;
-                        mm.Diagnose(brep,
-                                    out bool curlBrep_Result,
-                                    out bool verticalBrep_Result,
-                                    out bool redundencyBrep_Result,
-                                    out bool extrusionBrep_Result,
-                                    out int curlCriminalCount,
-                                    out int verticalCriminalCount,
-                                    out int extrusionCriminalCount,
-                                    out int redundencyCriminalCount,
-                                    out List<int> facesCriminalIndex_List);
+                        bool curlBrep_Result = false;
+                        bool verticalBrep_Result = false;
+                        bool redundencyBrep_Result = false;
+                        bool extrusionBrep_Result = false;
+                        List<int> facesCriminalIndex_List = new List<int>();
+
+                        if (brep != null)
+                        {
+                            face_Count += brep.Faces.Count;
+
+                            mm.Diagnose(brep,
+                                        out curlBrep_Result,
+                                        out verticalBrep_Result,
+                                        out redundencyBrep_Result,
+                                        out extrusionBrep_Result,
+                                        out int curlCriminalCount,
+                                        out int verticalCriminalCount,
+                                        out int extrusionCriminalCount,
+                                        out int redundencyCriminalCount,
+                                        out facesCriminalIndex_List);
+
+                            curl_Summary.faceCriminalCount += curlCriminalCount;
+                            vertical_Summary.faceCriminalCount += verticalCriminalCount;
+                            extrusion_Summary.faceCriminalCount += extrusionCriminalCount;
+                            redundency_Summary.faceCriminalCount += redundencyCriminalCount;
+                        }
 
                         if (facesCriminalIndex_List.Count != 0)
                         {
                             mm.ObjColorRevise(color, brep, facesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
-                            newBrep_List.Add(newBrep);
+                            brepNew_List.Add(newBrep);
                         }
                         else
                         {
-                            newBrep_List.Add(brep);
+                            brepNew_List.Add(brep);
                         }
-                        curl_Summary.faceCriminalCount += curlCriminalCount;
-                        vertical_Summary.faceCriminalCount += verticalCriminalCount;
-                        extrusion_Summary.faceCriminalCount += extrusionCriminalCount;
-                        redundency_Summary.faceCriminalCount += redundencyCriminalCount;
 
                         brepIndex++;
                     }
-                    newGB_List.AddRange(newBrep_List);
-                    newGB_List.AddRange(geoElse_List);
+
+                    geobaseNew_List.AddRange(brepNew_List);
+                    geobaseNew_List.AddRange(geobaseElse_List);
+                    attrNew_List.AddRange(attrBrep_List);
+                    attrNew_List.AddRange(attrElse_List);
 
 
                     //doc.Replace IDef Objs ////////////////////////////////////////////////////////////////////////////
-                    doc.InstanceDefinitions.ModifyGeometry(iDef.Index, newGB_List);
+                    doc.InstanceDefinitions.ModifyGeometry(iDef.Index, geobaseNew_List, attrNew_List);
                     doc.Views.Redraw();
                 }
 
+            }
+            else
+            {
+                RhinoApp.WriteLine("Blocks are not Inspected");
             }
 
             // Summary Dialog Information Collection ///////////////////////////////////////////////////////////////////

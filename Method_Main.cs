@@ -186,8 +186,19 @@ namespace Deviant_Inspector
         public bool ExtrusionCheck(Rhino.Geometry.BrepFace bFace)
         {
             // Avoiding Bad Objects ////////////////////////////////////////////////////////
-            Rhino.Geometry.Curve[] loop = bFace.OuterLoop.To3dCurve().DuplicateSegments();
-            if (loop.Length <= 2)
+            Rhino.Geometry.BrepLoop loop = bFace.OuterLoop;
+            Rhino.Geometry.Curve[] segs;
+            
+            if (loop != null)
+            {
+                segs = loop.To3dCurve().DuplicateSegments();
+            }
+            else
+            {
+                return false;
+            }
+                
+            if (segs.Length <= 2)
             {
                 return false;
             }
@@ -195,7 +206,7 @@ namespace Deviant_Inspector
             // Point of the Outer Loop Collection //////////////////////////////////////////
             double modelToleranceSquare = this.ModelTolerance * this.ModelTolerance;
             List<Rhino.Geometry.Point3d> pt_List = new List<Rhino.Geometry.Point3d>();
-            foreach (Rhino.Geometry.Curve segment in loop)
+            foreach (Rhino.Geometry.Curve segment in segs)
             {
                 if (!segment.IsLinear())
                 {
@@ -263,52 +274,57 @@ namespace Deviant_Inspector
 
             foreach (Rhino.Geometry.BrepFace brepFace in brep.Faces)
             {
+                if (brepFace != null)
+                {
+                    // Flat Surface Iteration //////////////////////////
+                    if (Curl_Toggle)
+                    {
+                        bool curlFace_Result = this.CurlCheck(brepFace);
+                        if (curlFace_Result)
+                        {
+                            curlBrep_Result = true;
+                            curlCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
+                        }
+                    }
+                    // Vertical Surface Iteration //////////////////////
+                    if (Vertical_Toggle)
+                    {
+                        bool verticalFace_Result = this.VerticalCheck(brepFace);
+                        if (verticalFace_Result)
+                        {
+                            verticalBrep_Result = true;
+                            verticalCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
+                        }
+                    }
+                    // Extruded Surface Iteration //////////////////////
+                    if (Extrusion_Toggle)
+                    {
+                        bool extrusionFace_Result = this.ExtrusionCheck(brepFace);
+                        if (extrusionFace_Result)
+                        {
+                            extrusionBrep_Result = true;
+                            extrusionCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
+                        }
+                    }
+                    // Redundency Surface Iteration //////////////////////
+                    if (Redundency_Toggle)
+                    {
+                        bool redundencyFace_Result = this.RedundencyCheck(brepFace);
+                        if (redundencyFace_Result)
+                        {
+                            redundencyBrep_Result = true;
+                            redundencyCriminalCount++;
+                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
+                        }
+                    }
 
-                // Flat Surface Iteration //////////////////////////
-                if (Curl_Toggle)
-                {
-                    bool curlFace_Result = this.CurlCheck(brepFace);
-                    if (curlFace_Result)
-                    {
-                        curlBrep_Result = true;
-                        curlCriminalCount++;
-                        facesCriminalIndex_List.Add(brepFace.FaceIndex);
-                    }
+                    facesCriminalIndex_List = facesCriminalIndex_List.Distinct().ToList();
+
                 }
-                // Vertical Surface Iteration //////////////////////
-                if (Vertical_Toggle)
-                {
-                    bool verticalFace_Result = this.VerticalCheck(brepFace);
-                    if (verticalFace_Result)
-                    {
-                        verticalBrep_Result = true;
-                        verticalCriminalCount++;
-                        facesCriminalIndex_List.Add(brepFace.FaceIndex);
-                    }
-                }
-                // Extruded Surface Iteration //////////////////////
-                if (Extrusion_Toggle)
-                {
-                    bool extrusionFace_Result = this.ExtrusionCheck(brepFace);
-                    if (extrusionFace_Result)
-                    {
-                        extrusionBrep_Result = true;
-                        extrusionCriminalCount++;
-                        facesCriminalIndex_List.Add(brepFace.FaceIndex);
-                    }
-                }
-                // Redundency Surface Iteration //////////////////////
-                if (Redundency_Toggle)
-                {
-                    bool redundencyFace_Result = this.RedundencyCheck(brepFace);
-                    if (redundencyFace_Result)
-                    {
-                        redundencyBrep_Result = true;
-                        redundencyCriminalCount++;
-                        facesCriminalIndex_List.Add(brepFace.FaceIndex);
-                    }
-                }
-                facesCriminalIndex_List = facesCriminalIndex_List.Distinct().ToList();
+
             }
 
             return true;
