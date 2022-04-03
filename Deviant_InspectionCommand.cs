@@ -7,15 +7,12 @@ namespace Deviant_Inspector
     public class Deviant_InspectionCommand : Rhino.Commands.Command
     {
         public Deviant_InspectionCommand()
-        {
-            // Rhino only creates one instance of each command class defined in a
-            // plug-in, so it is safe to store a refence in a static property.
+        {        
             Instance = this;
         }
 
-        ///<summary>The only instance of this command.</summary>
         public static Deviant_InspectionCommand Instance { get; private set; }
-        ///<returns>The command name as it appears on the Rhino command line.</returns>
+
         public override string EnglishName => "Devin";
 
         protected override Rhino.Commands.Result RunCommand(RhinoDoc doc, Rhino.Commands.RunMode mode)
@@ -44,7 +41,7 @@ namespace Deviant_Inspector
             Rhino.Input.Custom.OptionToggle curl_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle extrusion_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Off", "On");
             Rhino.Input.Custom.OptionToggle redundency_Toggle = new Rhino.Input.Custom.OptionToggle(false, "Off", "On");
-            Rhino.Input.Custom.OptionToggle block_Toggle = new Rhino.Input.Custom.OptionToggle(true, "Exclude", "Include");
+            Rhino.Input.Custom.OptionToggle block_Toggle = new Rhino.Input.Custom.OptionToggle(false, "Exclude", "Include");
 
             // MM Instance Initiation //////////////////////////////////////////////////////////////////////////////////
             Deviant_Inspector.Method_Main mm = new Method_Main
@@ -255,6 +252,8 @@ namespace Deviant_Inspector
                     List<Rhino.DocObjects.ObjectAttributes> attrBrep_List = new List<Rhino.DocObjects.ObjectAttributes>();
                     List<Rhino.DocObjects.ObjectAttributes> attrNew_List = new List<Rhino.DocObjects.ObjectAttributes>();
 
+                    List<Rhino.DocObjects.RhinoObject> brepObjectsInDef_List = new List<Rhino.DocObjects.RhinoObject>();
+
                     // Instance Definition convert to Breps ////////////////////////////////////////////////////////////
                     foreach (Rhino.DocObjects.RhinoObject rhObj in rhObj_Array)
                     {
@@ -266,6 +265,7 @@ namespace Deviant_Inspector
                             {
                                 brepInDef_List.Add(Rhino.Geometry.Brep.TryConvertBrep(gb));
                                 attrBrep_List.Add(objAttr);
+                                brepObjectsInDef_List.Add(rhObj);
                             }
                         }
                         else
@@ -312,8 +312,35 @@ namespace Deviant_Inspector
                             redundency_Summary.faceCriminalCount += redundencyCriminalCount;
                         }
 
+                        // Block Name Revision Loop ////////////////////////////////////////////////////////////////////
+                        if (curlBrep_Result)
+                        {
+                            mm.ObjNameRevise(brepObjectsInDef_List[brepIndex], curl_Summary.accusationObjName);
+                            curl_Summary.brepCriminalCount++;
+                        }
+                        if (verticalBrep_Result)
+                        {
+                            mm.ObjNameRevise(brepObjectsInDef_List[brepIndex], vertical_Summary.accusationObjName);
+                            vertical_Summary.brepCriminalCount++;
+                        }
+                        if (extrusionBrep_Result)
+                        {
+                            mm.ObjNameRevise(brepObjectsInDef_List[brepIndex], extrusion_Summary.accusationObjName);
+                            extrusion_Summary.brepCriminalCount++;
+                        }
+                        if (redundencyBrep_Result)
+                        {
+                            mm.ObjNameRevise(brepObjectsInDef_List[brepIndex], redundency_Summary.accusationObjName);
+                            redundency_Summary.brepCriminalCount++;
+                        }
+
+                        brepObjectsInDef_List[brepIndex].CommitChanges();
+
+                        // Block Color Revision Loop ///////////////////////////////////////////////////////////////////
                         if (facesCriminalIndex_List.Count != 0)
                         {
+                            brepIssue_Count++;
+                            faceIssue_Count += facesCriminalIndex_List.Count;
                             mm.ObjColorRevise(color, brep, facesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
                             brepNew_List.Add(newBrep);
                         }
@@ -321,6 +348,7 @@ namespace Deviant_Inspector
                         {
                             brepNew_List.Add(brep);
                         }
+
 
                         brepIndex++;
                     }
@@ -349,7 +377,7 @@ namespace Deviant_Inspector
             string brepIssue_String = "Breps Have Deviant Components Count: " + brepIssue_Count.ToString() + "\n";
             string faceIssue_String = "Faces Have Deviant Components Count: " + faceIssue_Count.ToString() + "\n";
 
-            // Dialog Set
+            // Dialog Set //////////////////////////////////////////////////////////////////////////////////////////////
             string dialogTitle = "Inspection Result";
             string dialogMessage = breakLine +
                                    faceCount_String +
@@ -373,8 +401,7 @@ namespace Deviant_Inspector
             return Rhino.Commands.Result.Success;
         }
 
-        // Issues: Check null Value
-
+        
 
 
     }
