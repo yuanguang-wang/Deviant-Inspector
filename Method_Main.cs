@@ -11,14 +11,11 @@ namespace Deviant_Inspector
     /// </summary>
     public class Method_Main
     {
-        /// <summary>
-        /// This Method Changes the RhinoObject's Color and Name
-        /// </summary>
-        /// <param name="rhObj">Rhino.DocObjects.RhinoObject</param>
-        /// <param name="newName">System.String</param>
-        /// <returns>returns true if worked, use #Rhino.DocObjects.RhinoObject.CommitChange# </returns>
+        // Delegates ///////////////////////////////////////////////////////////////////////////////////////////////////
         
-        // Public Attributes //////////////////////////////////////////////////////////////////
+        public delegate bool FaceDiagnoseDel(Rhino.Geometry.BrepFace bFace);
+
+        // Attributes //////////////////////////////////////////////////////////////////////////////////////////////////
         public double ModelTolerance { get; set; }
         public int EnlargeRatio { get; set; }
         public bool Curl_Toggle { get; set; }
@@ -27,7 +24,7 @@ namespace Deviant_Inspector
         public bool Redundency_Toggle { get; set; }
 
 
-        //Methods /////////////////////////////////////////////////////////////////////////////
+        //Methods //////////////////////////////////////////////////////////////////////////////////////////////////////
         public bool ObjNameRevise(Rhino.DocObjects.RhinoObject rhObj, string accusation)
         {
             //Name Revision ////////////////////////////////////////////
@@ -276,50 +273,33 @@ namespace Deviant_Inspector
             {
                 if (brepFace != null)
                 {
-                    // Flat Surface Iteration //////////////////////////
-                    if (Curl_Toggle)
-                    {
-                        bool curlFace_Result = this.CurlCheck(brepFace);
-                        if (curlFace_Result)
-                        {
-                            curlBrep_Result = true;
-                            curlCriminalCount++;
-                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
-                        }
-                    }
-                    // Vertical Surface Iteration //////////////////////
-                    if (Vertical_Toggle)
-                    {
-                        bool verticalFace_Result = this.VerticalCheck(brepFace);
-                        if (verticalFace_Result)
-                        {
-                            verticalBrep_Result = true;
-                            verticalCriminalCount++;
-                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
-                        }
-                    }
-                    // Extruded Surface Iteration //////////////////////
-                    if (Extrusion_Toggle)
-                    {
-                        bool extrusionFace_Result = this.ExtrusionCheck(brepFace);
-                        if (extrusionFace_Result)
-                        {
-                            extrusionBrep_Result = true;
-                            extrusionCriminalCount++;
-                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
-                        }
-                    }
-                    // Redundency Surface Iteration //////////////////////
-                    if (Redundency_Toggle)
-                    {
-                        bool redundencyFace_Result = this.RedundencyCheck(brepFace);
-                        if (redundencyFace_Result)
-                        {
-                            redundencyBrep_Result = true;
-                            redundencyCriminalCount++;
-                            facesCriminalIndex_List.Add(brepFace.FaceIndex);
-                        }
-                    }
+                    FaceDiagnoseDel curlFaceDiagnoseMethod = new FaceDiagnoseDel(CurlCheck);
+                    curlBrep_Result = this.FaceDiagnose(brepFace, 
+                                                        curlFaceDiagnoseMethod, 
+                                                        Curl_Toggle, 
+                                                        ref curlCriminalCount, 
+                                                        ref facesCriminalIndex_List);
+
+                    FaceDiagnoseDel verticalFaceDiagnoseMethod = new FaceDiagnoseDel(VerticalCheck);
+                    verticalBrep_Result = this.FaceDiagnose(brepFace,
+                                                        verticalFaceDiagnoseMethod,
+                                                        Vertical_Toggle,
+                                                        ref verticalCriminalCount,
+                                                        ref facesCriminalIndex_List);
+
+                    FaceDiagnoseDel extrusionFaceDiagnoseMethod = new FaceDiagnoseDel(ExtrusionCheck);
+                    extrusionBrep_Result = this.FaceDiagnose(brepFace,
+                                                        extrusionFaceDiagnoseMethod,
+                                                        Extrusion_Toggle,
+                                                        ref extrusionCriminalCount,
+                                                        ref facesCriminalIndex_List);
+
+                    FaceDiagnoseDel redundencyFaceDiagnoseMethod = new FaceDiagnoseDel(RedundencyCheck);
+                    redundencyBrep_Result = this.FaceDiagnose(brepFace,
+                                                        redundencyFaceDiagnoseMethod,
+                                                        Redundency_Toggle,
+                                                        ref redundencyCriminalCount,
+                                                        ref facesCriminalIndex_List);
 
                     facesCriminalIndex_List = facesCriminalIndex_List.Distinct().ToList();
 
@@ -329,6 +309,32 @@ namespace Deviant_Inspector
 
             return true;
         }
+
+        public bool FaceDiagnose(Rhino.Geometry.BrepFace bFace, 
+                                 FaceDiagnoseDel faceCheckMethod, 
+                                 bool OptionToggle, 
+                                 ref int faceCriminalCount,
+                                 ref List<int> facesCriminalIndex_List)
+        {
+            bool brepCheckResult = false;
+            if (OptionToggle)
+            {
+                if (faceCheckMethod(bFace)) // Return the faceCheckResult //
+                {
+                    brepCheckResult = true;
+                    faceCriminalCount += 1;
+                    facesCriminalIndex_List.Add(bFace.FaceIndex);
+                }
+            }
+            return brepCheckResult;
+        }
+
+        public bool DiagnoseLoop(Rhino.Geometry.Brep brep)
+        {
+
+            return true;
+        }
+
 
     }
 
