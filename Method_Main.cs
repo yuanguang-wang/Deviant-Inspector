@@ -8,11 +8,15 @@ namespace Deviant_Inspector
 {
     /// <summary>
     /// main method here
-    /// </summary>
-    public class Method_Main
+    /// </summary> 
+
+    class Method_Main { }
+
+    public class Inspection
     {
-        // Delegates ///////////////////////////////////////////////////////////////////////////////////////////////////
         
+        // Delegates ///////////////////////////////////////////////////////////////////////////////////////////////////
+
         public delegate bool FaceDiagnoseDel(Rhino.Geometry.BrepFace bFace);
 
         // Attributes //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -331,7 +335,58 @@ namespace Deviant_Inspector
 
         public bool DiagnoseLoop(Rhino.Geometry.Brep brep)
         {
+            // Summary Object using Accusation Name ////////////////////////////////////////////////////////////////////
+            Deviant_Inspector.Summary extrusion_Summary = new Summary(Accusation.Extrusion);
+            Deviant_Inspector.Summary curl_Summary = new Summary(Accusation.Curl);
+            Deviant_Inspector.Summary vertical_Summary = new Summary(Accusation.Vertical);
+            Deviant_Inspector.Summary redundency_Summary = new Summary(Accusation.Redundency);
 
+            List<int> facesCriminalIndex_List = new List<int>();
+            int face_Count = 0;
+
+            if (brep != null)
+            {
+                face_Count += brep.Faces.Count;
+
+                foreach (Rhino.Geometry.BrepFace brepFace in brep.Faces)
+                {
+                    if (brepFace != null)
+                    {
+                        FaceDiagnoseDel curlFaceDiagnoseMethod = new FaceDiagnoseDel(CurlCheck);
+                        curl_Summary.brepCriminalCheckResult = this.FaceDiagnose(brepFace,
+                                                            curlFaceDiagnoseMethod,
+                                                            Curl_Toggle,
+                                                            ref curlCriminalCount,
+                                                            ref facesCriminalIndex_List);
+
+                        FaceDiagnoseDel verticalFaceDiagnoseMethod = new FaceDiagnoseDel(VerticalCheck);
+                        vertical_Summary.brepCriminalCheckResult = this.FaceDiagnose(brepFace,
+                                                            verticalFaceDiagnoseMethod,
+                                                            Vertical_Toggle,
+                                                            ref verticalCriminalCount,
+                                                            ref facesCriminalIndex_List);
+
+                        FaceDiagnoseDel extrusionFaceDiagnoseMethod = new FaceDiagnoseDel(ExtrusionCheck);
+                        extrusion_Summary.brepCriminalCheckResult = this.FaceDiagnose(brepFace,
+                                                            extrusionFaceDiagnoseMethod,
+                                                            Extrusion_Toggle,
+                                                            ref extrusionCriminalCount,
+                                                            ref facesCriminalIndex_List);
+
+                        FaceDiagnoseDel redundencyFaceDiagnoseMethod = new FaceDiagnoseDel(RedundencyCheck);
+                        redundency_Summary.brepCriminalCheckResult = this.FaceDiagnose(brepFace,
+                                                            redundencyFaceDiagnoseMethod,
+                                                            Redundency_Toggle,
+                                                            ref redundencyCriminalCount,
+                                                            ref facesCriminalIndex_List);
+
+                        facesCriminalIndex_List = facesCriminalIndex_List.Distinct().ToList();
+
+                        // ! build failure! //
+                    }
+                    
+                }
+            }
             return true;
         }
 
@@ -345,6 +400,8 @@ namespace Deviant_Inspector
         public int brepCriminalCount = 0;
         public string accusation;
         public string accusationObjName;
+        public bool faceCriminalCheckResult;
+        public bool brepCriminalCheckResult;
 
         public Summary(string accusation)
         {

@@ -44,7 +44,7 @@ namespace Deviant_Inspector
             Rhino.Input.Custom.OptionToggle block_Toggle = new Rhino.Input.Custom.OptionToggle(false, "Exclude", "Include");
 
             // MM Instance Initiation //////////////////////////////////////////////////////////////////////////////////
-            Deviant_Inspector.Method_Main mm = new Method_Main
+            Deviant_Inspector.Inspection inspector = new Inspection
             {
                 ModelTolerance = doc.ModelAbsoluteTolerance,
                 EnlargeRatio = 100,
@@ -180,7 +180,7 @@ namespace Deviant_Inspector
                 {
                     face_Count += brep.Faces.Count;
 
-                    mm.Diagnose(brep,
+                    inspector.Diagnose(brep,
                                 out curlBrep_Result,
                                 out verticalBrep_Result,
                                 out redundencyBrep_Result,
@@ -200,22 +200,22 @@ namespace Deviant_Inspector
                 // Name Revision ///////////////////////////////////////////////////////////////////////////////////////
                 if (curlBrep_Result)
                 {
-                    mm.ObjNameRevise(brepObjs_List[i], curl_Summary.accusationObjName);
+                    inspector.ObjNameRevise(brepObjs_List[i], curl_Summary.accusationObjName);
                     curl_Summary.brepCriminalCount++;
                 }
                 if (verticalBrep_Result)
                 {
-                    mm.ObjNameRevise(brepObjs_List[i], vertical_Summary.accusationObjName);
+                    inspector.ObjNameRevise(brepObjs_List[i], vertical_Summary.accusationObjName);
                     vertical_Summary.brepCriminalCount++;
                 }
                 if (extrusionBrep_Result)
                 {
-                    mm.ObjNameRevise(brepObjs_List[i], extrusion_Summary.accusationObjName);
+                    inspector.ObjNameRevise(brepObjs_List[i], extrusion_Summary.accusationObjName);
                     extrusion_Summary.brepCriminalCount++;
                 }
                 if (redundencyBrep_Result)
                 {
-                    mm.ObjNameRevise(brepObjs_List[i], redundency_Summary.accusationObjName);
+                    inspector.ObjNameRevise(brepObjs_List[i], redundency_Summary.accusationObjName);
                     redundency_Summary.brepCriminalCount++;
                 }
                 // Commit Changes //////////////////////////////////////////////////////////////////////////////////////
@@ -226,7 +226,7 @@ namespace Deviant_Inspector
                 {
                     brepIssue_Count++;
                     faceIssue_Count += facesCriminalIndex_List.Count;
-                    mm.ObjColorRevise(color, brep, facesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
+                    inspector.ObjColorRevise(color, brep, facesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
                     doc.Objects.Replace(objRef_List[i], newBrep);
 
                 }
@@ -295,7 +295,7 @@ namespace Deviant_Inspector
                         {
                             face_Count += brep.Faces.Count;
 
-                            mm.Diagnose(brep,
+                            inspector.Diagnose(brep,
                                         out curlBrep_Result,
                                         out verticalBrep_Result,
                                         out redundencyBrep_Result,
@@ -315,22 +315,22 @@ namespace Deviant_Inspector
                         // Block Name Revision Loop ////////////////////////////////////////////////////////////////////
                         if (curlBrep_Result)
                         {
-                            mm.ObjNameRevise(brepObjectsInDef_List[brepIndex], curl_Summary.accusationObjName);
+                            inspector.ObjNameRevise(brepObjectsInDef_List[brepIndex], curl_Summary.accusationObjName);
                             curl_Summary.brepCriminalCount++;
                         }
                         if (verticalBrep_Result)
                         {
-                            mm.ObjNameRevise(brepObjectsInDef_List[brepIndex], vertical_Summary.accusationObjName);
+                            inspector.ObjNameRevise(brepObjectsInDef_List[brepIndex], vertical_Summary.accusationObjName);
                             vertical_Summary.brepCriminalCount++;
                         }
                         if (extrusionBrep_Result)
                         {
-                            mm.ObjNameRevise(brepObjectsInDef_List[brepIndex], extrusion_Summary.accusationObjName);
+                            inspector.ObjNameRevise(brepObjectsInDef_List[brepIndex], extrusion_Summary.accusationObjName);
                             extrusion_Summary.brepCriminalCount++;
                         }
                         if (redundencyBrep_Result)
                         {
-                            mm.ObjNameRevise(brepObjectsInDef_List[brepIndex], redundency_Summary.accusationObjName);
+                            inspector.ObjNameRevise(brepObjectsInDef_List[brepIndex], redundency_Summary.accusationObjName);
                             redundency_Summary.brepCriminalCount++;
                         }
 
@@ -341,7 +341,7 @@ namespace Deviant_Inspector
                         {
                             brepIssue_Count++;
                             faceIssue_Count += facesCriminalIndex_List.Count;
-                            mm.ObjColorRevise(color, brep, facesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
+                            inspector.ObjColorRevise(color, brep, facesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
                             brepNew_List.Add(newBrep);
                         }
                         else
