@@ -342,12 +342,71 @@ namespace Deviant_Inspector
         #endregion
 
         #region MTHD
-        public bool DiagnoseLoop(Rhino.DocObjects.ObjRef objRef)
+        
+        /// <summary>
+        /// Run In Main Program
+        /// </summary>
+        public bool IDefDiagnoseLoop(Rhino.DocObjects.InstanceDefinition iDef)
+        {
+            List<Rhino.DocObjects.ObjectAttributes> attrBrep_List = new List<Rhino.DocObjects.ObjectAttributes>();
+            List<Rhino.DocObjects.ObjectAttributes> attrOther_List = new List<Rhino.DocObjects.ObjectAttributes>();
+            
+            List<Rhino.Geometry.GeometryBase> geoBaseOthers_List = new List<Rhino.Geometry.GeometryBase>();
+            List<Rhino.Geometry.Brep> breps_List = new List<Rhino.Geometry.Brep>();
+            
+            this.BrepFilter(iDef,
+                            out List<Rhino.DocObjects.RhinoObject> brepObjs_List,
+                            out List<Rhino.DocObjects.RhinoObject> otherObjs_List);
+            foreach (Rhino.DocObjects.RhinoObject brepObj in brepObjs_List)
+            {
+                this.BrepDiagnoseLoop(brepObj, ref breps_List);
+                attrBrep_List.Add(brepObj.Attributes);
+            }
+            foreach (Rhino.DocObjects.RhinoObject otherObj in otherObjs_List)
+            {
+                attrOther_List.Add(otherObj.Attributes);
+                geoBaseOthers_List.Add(otherObj.Geometry);
+            }
+
+            List<Rhino.DocObjects.ObjectAttributes> attributes_List = new List<Rhino.DocObjects.ObjectAttributes>();
+            List<Rhino.Geometry.GeometryBase> geometryBases_List = new List<Rhino.Geometry.GeometryBase>();
+
+            attributes_List.AddRange(attrBrep_List);
+            attributes_List.AddRange(attrOther_List);
+            geometryBases_List.AddRange(breps_List);
+            geometryBases_List.AddRange(geoBaseOthers_List);
+
+            CurrentDoc.InstanceDefinitions.ModifyGeometry(iDef.Index, geometryBases_List, attributes_List);
+            CurrentDoc.Views.Redraw();
+
+            return true;
+        }       
+
+        public bool BrepDiagnoseLoop(Rhino.DocObjects.ObjRef objRef)
         {
             Rhino.Geometry.Brep brep = objRef.Brep();
             Rhino.DocObjects.RhinoObject brepObj = objRef.Object();
-            List<int> combinedFacesCriminalIndex_List = new List<int>();
 
+            this.DiagnoseLoopTemplate(brep, out List<int> combinedFacesCriminalIndex_List);
+            this.BrepColorChangeLoop(combinedFacesCriminalIndex_List, objRef, brep);
+            this.BrepNameChangeLoop(brepObj);
+            
+            return true;
+        }        
+
+        public bool BrepDiagnoseLoop(Rhino.DocObjects.RhinoObject brepObj, ref List<Rhino.Geometry.Brep> brepReplaced_List)
+        {
+            Rhino.Geometry.Brep brep = brepObj.Geometry as Rhino.Geometry.Brep;
+            this.DiagnoseLoopTemplate(brep, out List<int> combinedFacesCriminalIndex_List);
+            this.BrepColorChangeLoop(combinedFacesCriminalIndex_List, ref brepReplaced_List, brep);
+            this.BrepNameChangeLoop(brepObj);
+            return true;
+        }
+
+        public bool DiagnoseLoopTemplate(Rhino.Geometry.Brep brep, out List<int> combinedFacesCriminalIndex_List)
+        {
+
+            combinedFacesCriminalIndex_List = new List<int>();
             if (brep != null)
             {
                 Summary.Face_Count += brep.Faces.Count;
@@ -365,39 +424,93 @@ namespace Deviant_Inspector
                     }
 
                 }
-
-                // Revise the Color ////////////////////////////////////////////////////////////////
+                // Cascading list //////////////////////////////////////////////////////////////////
                 foreach (Diagnose diagnoseObj in DiagnoseObjs_List)
                 {
                     combinedFacesCriminalIndex_List.AddRange(diagnoseObj.FacesCriminalIndex_List);
                     // Clean the list for next diagnose /////////////////
                     diagnoseObj.FacesCriminalIndex_List = new List<int>();
-                }                
+                }
                 combinedFacesCriminalIndex_List = combinedFacesCriminalIndex_List.Distinct().ToList();
-                if (combinedFacesCriminalIndex_List.Count != 0)
-                {
-                    Summary.BrepIssue_Count++;
-                    Summary.FaceIssue_Count += combinedFacesCriminalIndex_List.Count;
-                    Core.ObjColorRevise(this.Color, brep, combinedFacesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
-                    this.CurrentDoc.Objects.Replace(objRef, newBrep);
 
-                }
-
-                // Revise the Name /////////////////////////////////////////////////////////////////
-                foreach (Diagnose diagnoseObj in DiagnoseObjs_List)
-                {
-                    if (diagnoseObj.BrepCriminalCheckResult)
-                    {
-                        Core.ObjNameRevise(brepObj, diagnoseObj.AccusationObjName);
-                        diagnoseObj.BrepCriminalCount += 1;
-                        diagnoseObj.BrepCriminalCheckResult = false;
-                    }
-                }
-                brepObj.CommitChanges();
-
-                //Finish one ObjRef/Brep Loop
+                
             }
 
+            return true;
+        }
+
+        public bool BrepNameChangeLoop(Rhino.DocObjects.RhinoObject brepObj)
+        {
+            // Revise the Name /////////////////////////////////////////////////////////////////////
+            foreach (Diagnose diagnoseObj in DiagnoseObjs_List)
+            {
+                if (diagnoseObj.BrepCriminalCheckResult)
+                {
+                    Core.ObjNameRevise(brepObj, diagnoseObj.AccusationObjName);
+                    diagnoseObj.BrepCriminalCount += 1;
+                    diagnoseObj.BrepCriminalCheckResult = false;
+                }
+            }
+            brepObj.CommitChanges();
+            return true;
+        }
+
+        public bool BrepColorChangeLoop(List<int> combinedFacesCriminalIndex_List, 
+                                        Rhino.DocObjects.ObjRef objRef, 
+                                        Rhino.Geometry.Brep brep)
+        {
+            // Revise the Color /////////////////////////////////////////////////////////////////////           
+            if (combinedFacesCriminalIndex_List.Count != 0)
+            {
+                Summary.BrepIssue_Count++;
+                Summary.FaceIssue_Count += combinedFacesCriminalIndex_List.Count;
+                Core.ObjColorRevise(this.Color, brep, combinedFacesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
+                this.CurrentDoc.Objects.Replace(objRef, newBrep);
+            }
+            return true;
+        }
+
+        public bool BrepColorChangeLoop(List<int> combinedFacesCriminalIndex_List,
+                                    ref List<Rhino.Geometry.Brep> brepReplaced_List,
+                                        Rhino.Geometry.Brep brep)
+        {
+            if (combinedFacesCriminalIndex_List.Count != 0)
+            {
+                Summary.BrepIssue_Count++;
+                Summary.FaceIssue_Count += combinedFacesCriminalIndex_List.Count;
+                Core.ObjColorRevise(this.Color, brep, combinedFacesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
+                brepReplaced_List.Add(newBrep);
+            }
+            else
+            {
+                brepReplaced_List.Add(brep);
+            }
+            return true;
+        }
+
+        public bool BrepFilter(Rhino.DocObjects.InstanceDefinition iDef,
+                                  out List<Rhino.DocObjects.RhinoObject> brepObjs_List,
+                                  out List<Rhino.DocObjects.RhinoObject> otherObjs_List)
+        {
+            Rhino.DocObjects.RhinoObject[] rhObjs_Array = iDef.GetObjects();
+            brepObjs_List = new List<Rhino.DocObjects.RhinoObject>();
+            otherObjs_List = new List<Rhino.DocObjects.RhinoObject>();
+
+            foreach (Rhino.DocObjects.RhinoObject rhObj in rhObjs_Array)
+            {
+                Rhino.Geometry.GeometryBase gb = rhObj.Geometry;
+                if (gb.ObjectType == Rhino.DocObjects.ObjectType.Brep)
+                {
+                    if (gb.HasBrepForm)
+                    {
+                        brepObjs_List.Add(rhObj);
+                    }
+                }
+                else
+                {
+                    otherObjs_List.Add(rhObj);
+                }
+            }
             return true;
         }
 
@@ -420,11 +533,10 @@ namespace Deviant_Inspector
 
         public const string breakLine = "------------------------------------------------------ \n";
         public const string dialogTitle = "Inspection Result";
-        public static int Face_Count = 0;
-        public static int Brep_Count = 0;
-        public static int FaceIssue_Count = 0;
-        public static int BrepIssue_Count = 0;
-
+        public static int Face_Count { get; set; }
+        public static int Brep_Count { get; set; }
+        public static int FaceIssue_Count { get; set; }
+        public static int BrepIssue_Count { get; set; }
         public static string DialogMessage { get; set; }
         public static string FaceCount_String { get; set; }
         public static string BrepCount_String { get; set; }
@@ -459,8 +571,6 @@ namespace Deviant_Inspector
             return true;
         }
         #endregion
-
-
     }
 
     public static class Accusation
