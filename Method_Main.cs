@@ -14,13 +14,13 @@ namespace Deviant_Inspector
     class Method_Main { }
 
     public delegate bool FaceDiagnoseDel(Rhino.Geometry.BrepFace bFace);
+    public delegate int AddOptionToggleDel(string accusation, ref Rhino.Input.Custom.OptionToggle optionToggle);
     
     static class Core
     {
-
-        #region ATTR
+        #region ATTR        
         public static double ModelTolerance { get; set; }
-        public static int EnlargeRatio { get; set; }
+        public static int EnlargeRatio = 100;
         #endregion
 
         #region MTHD
@@ -255,37 +255,42 @@ namespace Deviant_Inspector
         /// as well as the option toggle number.
         /// Current Count: 4
         /// </summary>
-        
+
         #region ATTR 
+        public readonly string On = "On";
+        public readonly string Off = "Off";
         public int FaceCriminalCount { get; set; }
         public int BrepCriminalCount { get; set; }
         public List<int> FacesCriminalIndex_List { get; set; }
         public string Accusation { get; set; }
         public string AccusationObjName { get; set; }
         public bool BrepCriminalCheckResult { get; set; }
-        public bool Option_Toggle { get; set; }
+        public Rhino.Input.Custom.OptionToggle Option_Toggle { get; set; }
         public FaceDiagnoseDel CoreMethodHandler { get; set; }
-
+        public bool OptionToggleDefaultValue { get; set; }
         #endregion
 
         #region CTOR
-        public Diagnose(string accusation, FaceDiagnoseDel faceDiagnoseMethod, bool optionToggle)
+        public Diagnose(string accusation, 
+                        FaceDiagnoseDel faceDiagnoseMethod, 
+                        bool pasedOptionToggleDefaultValue)
         {
             this.Accusation = accusation;
             this.AccusationObjName = "[" + accusation + "]";
             this.CoreMethodHandler = faceDiagnoseMethod;
-            this.Option_Toggle = optionToggle;
+            this.OptionToggleDefaultValue = pasedOptionToggleDefaultValue;
             this.FaceCriminalCount = 0;
             this.BrepCriminalCount = 0;
             this.FacesCriminalIndex_List = new List<int>();
             this.BrepCriminalCheckResult = false;
+            this.Option_Toggle = new Rhino.Input.Custom.OptionToggle(this.OptionToggleDefaultValue, this.Off, this.On);
         }
         #endregion
 
         #region MTHD
         public bool FaceDiagnose(Rhino.Geometry.BrepFace bFace)
         {            
-            if (Option_Toggle)
+            if (this.Option_Toggle.CurrentValue)
             {
                 if (CoreMethodHandler(bFace)) // Return the faceCheckResult //
                 {
@@ -302,7 +307,7 @@ namespace Deviant_Inspector
             string faceCriminal_String;
             string brepCriminal_String;
             string summary_String;
-            if (this.Option_Toggle)
+            if (this.Option_Toggle.CurrentValue)
             {
                 faceCriminal_String = "Faces with '" + Accusation + "' Issue Count: " + FaceCriminalCount.ToString() + "\n";
                 brepCriminal_String = "Breps with '" + Accusation + "' Issue Count: " + BrepCriminalCount.ToString() + "\n";
@@ -328,24 +333,112 @@ namespace Deviant_Inspector
         public Rhino.RhinoDoc CurrentDoc { get; set; }
         public System.Drawing.Color Color { get; set; }
         public List<Diagnose> DiagnoseObjs_List { get; set; }
+        public bool BlockInspectionToggle { get; set; }
         #endregion
 
         #region CTOR
-        public Inspection(Rhino.RhinoDoc doc, List<Diagnose> diagnoseObjs_List, System.Drawing.Color color)
+        public Inspection(Rhino.RhinoDoc currentDoc, List<Diagnose> diagnoseObjs_List, System.Drawing.Color color)
         {
-            this.CurrentDoc = doc;
-            Core.ModelTolerance = doc.ModelAbsoluteTolerance;
-            Core.EnlargeRatio = 100;
+            this.CurrentDoc = currentDoc;
             this.DiagnoseObjs_List = diagnoseObjs_List;
             this.Color = color;
         }
         #endregion
 
         #region MTHD
-        
+
         /// <summary>
         /// Run In Main Program
         /// </summary>
+
+        public bool Selector(out Rhino.DocObjects.ObjRef[] objsRef_Arry)
+        {
+            objsRef_Arry = null;
+            ///<remarks> Initiation </remarks>
+            Rhino.Input.Custom.GetObject getObjects = new Rhino.Input.Custom.GetObject
+            {
+                GeometryFilter = Rhino.DocObjects.ObjectType.Brep | Rhino.DocObjects.ObjectType.InstanceReference,
+                GroupSelect = true,
+                SubObjectSelect = false,
+                DeselectAllBeforePostSelect = false
+            };
+            getObjects.EnableClearObjectsOnEntry(false);
+            getObjects.EnableUnselectObjectsOnExit(false);
+
+            Rhino.Input.Custom.OptionToggle block_Toggle = new Rhino.Input.Custom.OptionToggle(false, "Exclude", "Include");
+
+            ///<remarks>
+            /// Body: str Must only consist of letters and numbers 
+            /// no characters list periods, spaces, or dashes
+            ///</remarks>
+            foreach (Diagnose diagnoseObj in DiagnoseObjs_List)
+            {
+                Rhino.Input.Custom.OptionToggle tempToggle = diagnoseObj.Option_Toggle;
+                getObjects.AddOptionToggle(diagnoseObj.Accusation, ref tempToggle);
+                diagnoseObj.Option_Toggle = tempToggle;
+            }
+            getObjects.AddOptionToggle("Blocks", ref block_Toggle);
+            
+            this.CurrentDoc.Objects.UnselectAll();
+            this.CurrentDoc.Views.Redraw();
+
+            getObjects.SetCommandPrompt("Select the B-Reps to be Inspected");
+            while (true)
+            {
+                Rhino.Input.GetResult getResult = getObjects.GetMultiple(1, 0);
+
+                if (getResult == Rhino.Input.GetResult.Option)
+                {
+                    getObjects.EnablePreSelect(false, true);
+                    continue;
+                }
+                else if (getResult == Rhino.Input.GetResult.Object)
+                {
+                    RhinoApp.WriteLine("Brep Selection Finished");
+                    getObjects.EnablePreSelect(true, true);
+                    break;
+                }
+                else
+                {
+                    RhinoApp.WriteLine("[COMMAND EXIT] Nothing is Selected to be Inspected");
+                    CurrentDoc.Views.Redraw();
+                    return false;
+                }
+
+            }
+            this.BlockInspectionToggle = block_Toggle.CurrentValue;
+
+
+            bool toggleAllValue = false;
+            foreach (Diagnose diagnoseObj in DiagnoseObjs_List)
+            {
+                toggleAllValue = toggleAllValue || diagnoseObj.Option_Toggle.CurrentValue;
+            }            
+            if (toggleAllValue == false)
+            {
+                RhinoApp.WriteLine("[COMMAND EXIT] All Inspection is Turned off, Nothing will be Inspected");
+                this.CurrentDoc.Views.Redraw();
+                return false;
+            }
+
+            ///<remarks> Brep Collection </remarks>
+            if (getObjects.CommandResult() != Rhino.Commands.Result.Success)
+            {
+                RhinoApp.WriteLine("[COMMAND EXIT] Nothing is Selected to be Inspected");
+                this.CurrentDoc.Views.Redraw();
+                return false;
+            }
+            objsRef_Arry = getObjects.Objects();
+            this.CurrentDoc.Objects.UnselectAll();
+
+            if (objsRef_Arry == null)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         public bool IDefDiagnoseLoop(Rhino.DocObjects.InstanceDefinition iDef)
         {
             List<Rhino.DocObjects.ObjectAttributes> attrBrep_List = new List<Rhino.DocObjects.ObjectAttributes>();
