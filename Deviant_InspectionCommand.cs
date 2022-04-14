@@ -17,10 +17,11 @@ namespace Deviant_Inspector
 
         protected override Rhino.Commands.Result RunCommand(RhinoDoc doc, Rhino.Commands.RunMode mode)
         {
-            #region ColorSet
+
+            #region ColorSet ///////////////////////////////////////////////////////////////////////////////////////////
             RhinoApp.WriteLine("Select One Color to be Drawn on Deviants, Default Color is Red");
-            System.Drawing.Color color = System.Drawing.Color.Red;
-            bool result_Color = Rhino.UI.Dialogs.ShowColorDialog(ref color,
+            System.Drawing.Color passedColor = System.Drawing.Color.Red;
+            bool result_Color = Rhino.UI.Dialogs.ShowColorDialog(ref passedColor,
                                                                  true,
                                                                 "Select One Color to be Drawn on Deviants, " +
                                                                 "Default is Red");
@@ -30,10 +31,12 @@ namespace Deviant_Inspector
                 doc.Views.Redraw();
                 return Rhino.Commands.Result.Cancel;
             }
-            #endregion
+            #endregion /////////////////////////////////////////////////////////////////////////////////////////////////
 
-            #region Initiation
+            #region Initiation /////////////////////////////////////////////////////////////////////////////////////////
             Core.ModelTolerance = doc.ModelAbsoluteTolerance;
+            Core.Color = passedColor;
+            
             Deviant_Inspector.Diagnose curl_Diagnose = new Diagnose(Accusation.Curl,
                                                                           Core.CurlCheck,
                                                                           true);
@@ -53,49 +56,33 @@ namespace Deviant_Inspector
                 extrusion_Diagnose,
                 redundency_Diagnose
             };
-            Deviant_Inspector.Inspection inspector = new Inspection(doc, diagnoseObjs_List, color);
+            Deviant_Inspector.Inspection inspector = new Inspection(doc, diagnoseObjs_List, CmdName.Inspection);
             Summary.Face_Count = 0;
             Summary.Brep_Count = 0;
             Summary.FaceIssue_Count = 0;
             Summary.BrepIssue_Count = 0;
-            #endregion
+            #endregion /////////////////////////////////////////////////////////////////////////////////////////////////
 
-            // Totally Obj List with Brep % RhObj //////////////////////////////////////////////////////////////////////
-            List<Rhino.DocObjects.InstanceDefinition> iDef_List = new List<Rhino.DocObjects.InstanceDefinition>();
-            List<Rhino.DocObjects.ObjRef> objRef_List = new List<Rhino.DocObjects.ObjRef>();
-
-            // Dispatch IRef and Brep //////////////////////////////////////////////////////////////////////////////////
-            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            #region Dispacth////////////////////////////////////////////////////////////////////////////////////////////
             bool cmdInterruption = inspector.Selector(out Rhino.DocObjects.ObjRef[] objsRef_Arry);
             if (!cmdInterruption)
             {
                 return Rhino.Commands.Result.Cancel;
             }
-            foreach (Rhino.DocObjects.ObjRef objRef in objsRef_Arry)
-            {
-                if (objRef.Object() is Rhino.DocObjects.InstanceObject iRefObj)
-                {
-                    Rhino.DocObjects.InstanceDefinition iDef = iRefObj.InstanceDefinition;
-                    if (!iDef_List.Contains(iDef))
-                    {
-                        iDef_List.Add(iDef);
-                    }
-                }
-                else
-                {
-                    objRef_List.Add(objRef);
-                }
-            }
-            
-            #region Brep
+            Core.Dispatch(objsRef_Arry,
+                          out List<Rhino.DocObjects.InstanceDefinition> iDef_List,
+                          out List<Rhino.DocObjects.ObjRef> objRef_List);
+            #endregion /////////////////////////////////////////////////////////////////////////////////////////////////
+
+            #region Brep ///////////////////////////////////////////////////////////////////////////////////////////////
             foreach (Rhino.DocObjects.ObjRef objRef in objRef_List)
             {
                 inspector.BrepDiagnoseLoop(objRef);
             }
             inspector.InspectionResult();
-            #endregion
+            #endregion /////////////////////////////////////////////////////////////////////////////////////////////////
 
-            #region Block            
+            #region Block //////////////////////////////////////////////////////////////////////////////////////////////            
             if (inspector.BlockInspectionToggle)
             {
                 foreach (Rhino.DocObjects.InstanceDefinition iDef in iDef_List)
@@ -106,14 +93,14 @@ namespace Deviant_Inspector
             }
             else
             {
-                RhinoApp.WriteLine("Blocks are not Inspected");
+                RhinoApp.WriteLine("Blocks are not Selected");
             }
-            #endregion
+            #endregion /////////////////////////////////////////////////////////////////////////////////////////////////
 
-            #region Summary
+            #region Summary ////////////////////////////////////////////////////////////////////////////////////////////
             doc.Views.Redraw();
             Summary.Result();
-            #endregion
+            #endregion /////////////////////////////////////////////////////////////////////////////////////////////////
 
             return Rhino.Commands.Result.Success;
         }

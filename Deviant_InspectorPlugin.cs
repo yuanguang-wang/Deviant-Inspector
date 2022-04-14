@@ -10,8 +10,5 @@ namespace Deviant_Inspector
             Instance = this;
         }
         public static Deviant_InspectorPlugin Instance { get; private set; }
-
-        // protected override void OptionsDialogPages();
-        // Dialog Page
     }
 }

@@ -11,16 +11,23 @@ namespace Deviant_Inspector
     /// main method here
     /// </summary> 
 
-    class Method_Main { }
+    class MethodAssembly
+    {
+        public delegate bool FaceDiagnoseDel(Rhino.Geometry.BrepFace bFace);
 
-    public delegate bool FaceDiagnoseDel(Rhino.Geometry.BrepFace bFace);
-    public delegate int AddOptionToggleDel(string accusation, ref Rhino.Input.Custom.OptionToggle optionToggle);
-    
+        public delegate bool ObjNameChangeDel(Rhino.DocObjects.RhinoObject rhObj, string accusation);
+
+        public delegate bool ObjColorChangeDel(Rhino.Geometry.Brep brep,
+                                                List<int> criminalIndex_List,
+                                            out Rhino.Geometry.Brep newBrep);
+    }
+
     static class Core
     {
-        #region ATTR        
+        #region ATTR 
+        public static System.Drawing.Color Color { get; set; }
         public static double ModelTolerance { get; set; }
-        public static int EnlargeRatio = 100;
+        public static int EnlargeRatio = 100;        
         #endregion
 
         #region MTHD
@@ -66,23 +73,22 @@ namespace Deviant_Inspector
             return true;
         }
 
-        public static bool ObjColorRevise(System.Drawing.Color color, 
-                                   Rhino.Geometry.Brep brep, 
-                                   List<int> criminalIndex_List, 
-                               out Rhino.Geometry.Brep newBrep)
+        public static bool ObjColorRevise(Rhino.Geometry.Brep brep, 
+                                          List<int> criminalIndex_List, 
+                                      out Rhino.Geometry.Brep newBrep)
         {
             newBrep = brep.DuplicateBrep();
             foreach (int i in criminalIndex_List)
             {
-                newBrep.Faces[i].PerFaceColor = color;
+                newBrep.Faces[i].PerFaceColor = Color;
             }
 
             return true;
         }
 
-        public static bool ObjColorRollback(Rhino.Geometry.Brep brep, 
-                                     List<int> criminalIndex_List, 
-                                 out Rhino.Geometry.Brep newBrep)
+        public static bool ObjColorRollback(Rhino.Geometry.Brep brep,
+                                            List<int> criminalIndex_List,
+                                        out Rhino.Geometry.Brep newBrep)
         {
             newBrep = brep.DuplicateBrep();
             foreach (int i in criminalIndex_List)
@@ -245,6 +251,31 @@ namespace Deviant_Inspector
             return false;
         }
 
+        public static bool Dispatch(Rhino.DocObjects.ObjRef[] objsRef_Arry,
+                                    out List<Rhino.DocObjects.InstanceDefinition> iDef_List,
+                                    out List<Rhino.DocObjects.ObjRef> objRef_List)
+        {
+            iDef_List = new List<Rhino.DocObjects.InstanceDefinition>();
+            objRef_List = new List<Rhino.DocObjects.ObjRef>();
+
+            foreach (Rhino.DocObjects.ObjRef objRef in objsRef_Arry)
+            {
+                if (objRef.Object() is Rhino.DocObjects.InstanceObject iRefObj)
+                {
+                    Rhino.DocObjects.InstanceDefinition iDef = iRefObj.InstanceDefinition;
+                    if (!iDef_List.Contains(iDef))
+                    {
+                        iDef_List.Add(iDef);
+                    }
+                }
+                else
+                {
+                    objRef_List.Add(objRef);
+                }
+            }
+
+            return true;
+        }
         #endregion
     }
 
@@ -266,13 +297,13 @@ namespace Deviant_Inspector
         public string AccusationObjName { get; set; }
         public bool BrepCriminalCheckResult { get; set; }
         public Rhino.Input.Custom.OptionToggle Option_Toggle { get; set; }
-        public FaceDiagnoseDel CoreMethodHandler { get; set; }
+        public MethodAssembly.FaceDiagnoseDel CoreMethodHandler { get; set; }
         public bool OptionToggleDefaultValue { get; set; }
         #endregion
 
         #region CTOR
-        public Diagnose(string accusation, 
-                        FaceDiagnoseDel faceDiagnoseMethod, 
+        public Diagnose(string accusation,
+                        MethodAssembly.FaceDiagnoseDel faceDiagnoseMethod, 
                         bool pasedOptionToggleDefaultValue)
         {
             this.Accusation = accusation;
@@ -331,17 +362,36 @@ namespace Deviant_Inspector
 
         #region ATTR
         public Rhino.RhinoDoc CurrentDoc { get; set; }
-        public System.Drawing.Color Color { get; set; }
         public List<Diagnose> DiagnoseObjs_List { get; set; }
         public bool BlockInspectionToggle { get; set; }
+        public string CmdNameHolder { get; set; }
+        public MethodAssembly.ObjColorChangeDel ObjColorChangeHandler { get; set; }
+        public MethodAssembly.ObjNameChangeDel ObjNameChangeHandler { get; set; }
         #endregion
 
         #region CTOR
-        public Inspection(Rhino.RhinoDoc currentDoc, List<Diagnose> diagnoseObjs_List, System.Drawing.Color color)
+        public Inspection(Rhino.RhinoDoc currentDoc, 
+                          List<Diagnose> diagnoseObjs_List, 
+                          string passedCmdName)
         {
             this.CurrentDoc = currentDoc;
             this.DiagnoseObjs_List = diagnoseObjs_List;
-            this.Color = color;
+            if (passedCmdName == CmdName.Inspection)
+            {
+                this.ObjColorChangeHandler = new MethodAssembly.ObjColorChangeDel(Core.ObjColorRevise);
+                this.ObjNameChangeHandler = new MethodAssembly.ObjNameChangeDel(Core.ObjNameRevise);
+            }
+            else if (passedCmdName == CmdName.Rollback)
+            {
+                this.ObjColorChangeHandler = new MethodAssembly.ObjColorChangeDel(Core.ObjColorRollback);
+                this.ObjNameChangeHandler = new MethodAssembly.ObjNameChangeDel(Core.ObjNameRollback);
+            }
+            else
+            {
+
+            }
+            this.CmdNameHolder = passedCmdName;
+
         }
         #endregion
 
@@ -382,7 +432,7 @@ namespace Deviant_Inspector
             this.CurrentDoc.Objects.UnselectAll();
             this.CurrentDoc.Views.Redraw();
 
-            getObjects.SetCommandPrompt("Select the B-Reps to be Inspected");
+            getObjects.SetCommandPrompt("Select the breps to run " + this.CmdNameHolder + " command");
             while (true)
             {
                 Rhino.Input.GetResult getResult = getObjects.GetMultiple(1, 0);
@@ -394,13 +444,13 @@ namespace Deviant_Inspector
                 }
                 else if (getResult == Rhino.Input.GetResult.Object)
                 {
-                    RhinoApp.WriteLine("Brep Selection Finished");
+                    RhinoApp.WriteLine("Brep selection finished");
                     getObjects.EnablePreSelect(true, true);
                     break;
                 }
                 else
                 {
-                    RhinoApp.WriteLine("[COMMAND EXIT] Nothing is Selected to be Inspected");
+                    RhinoApp.WriteLine("[COMMAND EXIT] Nothing is selected to run " + this.CmdNameHolder + " command");
                     CurrentDoc.Views.Redraw();
                     return false;
                 }
@@ -416,7 +466,7 @@ namespace Deviant_Inspector
             }            
             if (toggleAllValue == false)
             {
-                RhinoApp.WriteLine("[COMMAND EXIT] All Inspection is Turned off, Nothing will be Inspected");
+                RhinoApp.WriteLine("[COMMAND EXIT] All toggles are turned off, no command will run.");
                 this.CurrentDoc.Views.Redraw();
                 return false;
             }
@@ -424,7 +474,7 @@ namespace Deviant_Inspector
             ///<remarks> Brep Collection </remarks>
             if (getObjects.CommandResult() != Rhino.Commands.Result.Success)
             {
-                RhinoApp.WriteLine("[COMMAND EXIT] Nothing is Selected to be Inspected");
+                RhinoApp.WriteLine("[COMMAND EXIT] Nothing is selected to run " + this.CmdNameHolder + " command");
                 this.CurrentDoc.Views.Redraw();
                 return false;
             }
@@ -435,7 +485,32 @@ namespace Deviant_Inspector
             {
                 return false;
             }
+            return true;
+        }
 
+        public bool BrepFilter(Rhino.DocObjects.InstanceDefinition iDef,
+                           out List<Rhino.DocObjects.RhinoObject> brepObjs_List,
+                           out List<Rhino.DocObjects.RhinoObject> otherObjs_List)
+        {
+            Rhino.DocObjects.RhinoObject[] rhObjs_Array = iDef.GetObjects();
+            brepObjs_List = new List<Rhino.DocObjects.RhinoObject>();
+            otherObjs_List = new List<Rhino.DocObjects.RhinoObject>();
+
+            foreach (Rhino.DocObjects.RhinoObject rhObj in rhObjs_Array)
+            {
+                Rhino.Geometry.GeometryBase gb = rhObj.Geometry;
+                if (gb.ObjectType == Rhino.DocObjects.ObjectType.Brep)
+                {
+                    if (gb.HasBrepForm)
+                    {
+                        brepObjs_List.Add(rhObj);
+                    }
+                }
+                else
+                {
+                    otherObjs_List.Add(rhObj);
+                }
+            }
             return true;
         }
 
@@ -539,7 +614,7 @@ namespace Deviant_Inspector
             {
                 if (diagnoseObj.BrepCriminalCheckResult)
                 {
-                    Core.ObjNameRevise(brepObj, diagnoseObj.AccusationObjName);
+                    this.ObjNameChangeHandler(brepObj, diagnoseObj.AccusationObjName);
                     diagnoseObj.BrepCriminalCount += 1;
                     diagnoseObj.BrepCriminalCheckResult = false;
                 }
@@ -557,7 +632,7 @@ namespace Deviant_Inspector
             {
                 Summary.BrepIssue_Count++;
                 Summary.FaceIssue_Count += combinedFacesCriminalIndex_List.Count;
-                Core.ObjColorRevise(this.Color, brep, combinedFacesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
+                this.ObjColorChangeHandler(brep, combinedFacesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
                 this.CurrentDoc.Objects.Replace(objRef, newBrep);
             }
             return true;
@@ -571,7 +646,7 @@ namespace Deviant_Inspector
             {
                 Summary.BrepIssue_Count++;
                 Summary.FaceIssue_Count += combinedFacesCriminalIndex_List.Count;
-                Core.ObjColorRevise(this.Color, brep, combinedFacesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
+                this.ObjColorChangeHandler(brep, combinedFacesCriminalIndex_List, out Rhino.Geometry.Brep newBrep);
                 brepReplaced_List.Add(newBrep);
             }
             else
@@ -580,33 +655,7 @@ namespace Deviant_Inspector
             }
             return true;
         }
-
-        public bool BrepFilter(Rhino.DocObjects.InstanceDefinition iDef,
-                                  out List<Rhino.DocObjects.RhinoObject> brepObjs_List,
-                                  out List<Rhino.DocObjects.RhinoObject> otherObjs_List)
-        {
-            Rhino.DocObjects.RhinoObject[] rhObjs_Array = iDef.GetObjects();
-            brepObjs_List = new List<Rhino.DocObjects.RhinoObject>();
-            otherObjs_List = new List<Rhino.DocObjects.RhinoObject>();
-
-            foreach (Rhino.DocObjects.RhinoObject rhObj in rhObjs_Array)
-            {
-                Rhino.Geometry.GeometryBase gb = rhObj.Geometry;
-                if (gb.ObjectType == Rhino.DocObjects.ObjectType.Brep)
-                {
-                    if (gb.HasBrepForm)
-                    {
-                        brepObjs_List.Add(rhObj);
-                    }
-                }
-                else
-                {
-                    otherObjs_List.Add(rhObj);
-                }
-            }
-            return true;
-        }
-
+        
         public bool InspectionResult()
         {
             string inspectionResult = "";
@@ -666,14 +715,18 @@ namespace Deviant_Inspector
         #endregion
     }
 
-    public static class Accusation
+    static class Accusation
     {
-        public static string Curl = "Curl";
-        public static string Extrusion = "Extrusion";
-        public static string Vertical = "Vertical";
-        public static string Redundency = "Redundency";
+        public readonly static string Curl = "Curl";
+        public readonly static string Extrusion = "Extrusion";
+        public readonly static string Vertical = "Vertical";
+        public readonly static string Redundency = "Redundency";
     }
 
-
+    static class CmdName
+    {
+        public readonly static string Inspection = "Inspection";
+        public readonly static string Rollback = "Rollback";
+    }
 
 }
