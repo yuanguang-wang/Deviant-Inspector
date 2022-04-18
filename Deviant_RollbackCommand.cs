@@ -30,15 +30,15 @@ namespace Deviant_Inspector
             Deviant_Inspector.Diagnose extrusion_Diagnose = new Diagnose(Accusation.Extrusion,
                                                                           Core.ExtrusionCheck,
                                                                           true);
-            Deviant_Inspector.Diagnose redundency_Diagnose = new Diagnose(Accusation.Redundency,
-                                                                          Core.RedundencyCheck,
+            Deviant_Inspector.Diagnose Redundancy_Diagnose = new Diagnose(Accusation.Redundancy,
+                                                                          Core.RedundancyCheck,
                                                                           false);
             List<Diagnose> diagnoseObjs_List = new List<Diagnose>
             {
                 curl_Diagnose,
                 vertical_Diagnose,
                 extrusion_Diagnose,
-                redundency_Diagnose
+                Redundancy_Diagnose
             };
             Deviant_Inspector.Inspection roller = new Inspection(doc, diagnoseObjs_List, CmdName.Rollback);
             Summary.Face_Count = 0;

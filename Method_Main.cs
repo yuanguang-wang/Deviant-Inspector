@@ -233,7 +233,7 @@ namespace Deviant_Inspector
             return true;
         }
 
-        public static bool RedundencyCheck(Rhino.Geometry.BrepFace bFace)
+        public static bool RedundancyCheck(Rhino.Geometry.BrepFace bFace)
         {
             Rhino.Geometry.Curve loop = bFace.OuterLoop.To3dCurve();
 
@@ -723,7 +723,7 @@ namespace Deviant_Inspector
         public static readonly string Curl = "Curl";
         public static readonly string Extrusion = "Extrusion";
         public static readonly string Vertical = "Vertical";
-        public static readonly string Redundency = "Redundency";
+        public static readonly string Redundancy = "Redundancy";
     }
 
     internal static class CmdName
