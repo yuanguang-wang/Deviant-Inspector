@@ -7,9 +7,8 @@
 Deviant Inspector is a Rhino Plugin helping to diagnose the breps in the rhinodoc.3dm file, distinguishes the breps which have some specific geometry characteristics; once some of the breps' attributes match the preset diagnose profiles, those breps will be colored and given a name of the matched preset diagnose profiles. 
 
 ### System Requirement
-Rhino 7.0, Windows 10/11. <br/>
+Rhino 7.0 and later, Windows 10/11. <br/>
 Support MacOS theoretically but never tested.<br/>
-Does not support Rhino 6.
 
 <br clear="left"/>
 
