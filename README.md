@@ -34,27 +34,27 @@ Deviant Inspector has two embedded commands that could be typed in the Rhino Com
 ```rs.IsSurfacePlanar()``` allows the ModelTolerance level of precision to decide whether a surface is flat or not. 
 <br/>
 By opening "Curl" toggle on, the plugin will iterate every brep selected to mark the deviants with color and add a **[Curl]** at the objects' name.
-
+<img src="/EmbeddedResources/diagram-01.png"> 
 ### Vertical
 "***Vertical***" means that a surface is visually vertical in rhino space, parallel with the z-axis but actually not, such as have a 0.05 degree with the z-axis.
 This function will detect the surfaces which have only a small angle from the vertical / z-axis.
 <br/>
 By opening "Vertical" toggle on, the plugin will iterate every brep selected to mark the deviants with color and add a **[Vertical]** at the objects' name.
-
+<img src="/EmbeddedResources/diagram-02.png"> 
 ### Extrusion
 "***Extrusion***" means that a surface is extruded by dragging the gumball, in the condition that a line is extruded in the direction of itself,
 meaning the direction vector is the connection of the start and end point. 
 Doing this, the surface has its four (or more) boundary vertexes co-liner and so it looks like a line.
 <br/>
 By opening "Extrusion" toggle on, the plugin will iterate every brep selected to mark the deviants with color and add a **[Extrusion]** at the objects' name.
-
+<img src="/EmbeddedResources/diagram-03.png"> 
 ### Redundancy
 "***Redundancy***" means that a surface could be simplified to has less control point so as to reduce the model's size. 
 The simplification is working on the boundary curves of each surface, to test whether each boundary could be simplified or not.
 Hand-made rhino model has more difficulty to reach the goal that every brep is clean and simplest while doing design study, so by default this toggle is turned off.
 <br/>
 By opening "Redundancy" toggle on, the plugin will iterate every brep selected to mark the deviants with color and add a **[Redundancy]** at the objects' name.
-
+<img src="/EmbeddedResources/diagram-04.png"> 
 ### Block
 "***Block***" means that whether the breps in a block will be diagnosed or not. 
 The selection section will allow the selection of both brep and block, 
