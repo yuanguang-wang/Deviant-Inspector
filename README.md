@@ -2,7 +2,7 @@
 
 ## General
 <img align="left" src="/EmbeddedResources/deviant.png" width="300" height="300"> 
- 
+
 ### Description
 Deviant Inspector is a Rhino Plugin helping to diagnose the breps in the rhinodoc.3dm file, distinguishes the breps which have some specific geometry characteristics; once some of the breps' attributes match the preset diagnose profiles, those breps will be colored and given a name of the matched preset diagnose profiles. 
 
@@ -19,14 +19,29 @@ The purpose of this plugin is to detect the brep made unintendedly,
 lacking accuracy to whether make2d to draw cad file or convert to revit as generic model.
 <br/>
 <br/>
+
 ## Commands
-Deviant Inspector has two embedded commands that could be typed in the Rhino Command Window
+Deviant Inspector has two embedded commands that could be typed in the Rhino Command Window.
+
+#
+
+<img align="left" src="/EmbeddedResources/deviant-01.png" width="150" height="150"> 
+
 ### ***devin***
-"***devin***" stands for "**Deviant Inspection**", by typing "devin" in rhino command window, pick a color and select the breps and blocks need to be diagnosed, the command will run, by marking them with the picked color and the associated name.
+"***devin***" stands for "**Deviant Inspection**", by typing "devin" in rhino command window, pick a color and select the breps and blocks need to be diagnosed, the 
+command will run, by marking them with the picked color and the associated name.
+<br clear="left"/>
+
+#
+
+<img align="left" src="/EmbeddedResources/deviant-02.png" width="150" height="150">
+
 ### ***devro***
-"***devro***" stands for "**Deviant Rollback**", by typing "devro" in rhino command window, select the breps and blocks need to weep out those changes made by the command "devin", and then all the changes will be rolled back to make the model looks like the original.
+"***devro***" stands for "**Deviant Rollback**", by typing "devro" in rhino command window, select the breps and blocks need to weep out those changes made by the 
+command "devin", and then all the changes will be rolled back to make the model looks like the original.
+<br clear="left"/>
 <br/>
-<br/>
+
 ## Terminology
 ### Curl
 "***Curl***" means that a surface (alone or contained in a polysurface) is visually flat but actually not if tested by the ```rs.IsSurfacePlanar()```;
@@ -50,8 +65,7 @@ By opening "Extrusion" toggle on, the plugin will iterate every brep selected to
 ### Redundancy
 "***Redundancy***" means that a surface could be simplified to has less control point so as to reduce the model's size. 
 The simplification is working on the boundary curves of each surface, to test whether each boundary could be simplified or not.
-<br/>
-Core API used behind this method is the ```Rhino.Geometry.Curve.Simplify()``` to test whether a boundary loop could be simplified or not.
+Core API used behind this method is the ```Rhino.Geometry.Curve.Simplify()``` .
 Hand-made rhino model has more difficulty to reach the goal that every brep is clean and simplest while doing design study, so by default this toggle is turned off.
 <br/>
 By opening "Redundancy" toggle on, the plugin will iterate every brep selected to mark the deviants with color and add a **[Redundancy]** at the objects' name.
