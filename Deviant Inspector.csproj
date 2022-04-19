@@ -2,10 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
-    <Version>1.0</Version>
-    <Title>Deviant Inspector</Title>
+    <Version>1.0.2</Version>
+    <Title>Deviant-Inspector</Title>
     <Description>Description of Deviant Inspector</Description>
     <TargetExt>.rhp</TargetExt>
+    <AssemblyName>Deviant-Inspector</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

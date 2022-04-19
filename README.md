@@ -20,6 +20,21 @@ lacking accuracy to whether make2d to draw cad file or convert to revit as gener
 <br/>
 <br/>
 
+## Instillation
+### - via Package Manager
+- Open *Rhino*
+- In the Command Window, type the command ```PackageManager```
+- In the poped up *Package Manager* window, search ***Deviant-Inspector***
+- Click Install
+- Restart Rhino
+
+### - via Food4Rhino
+Click the link below to download via food4rhino:
+<br/>
+[https://www.food4rhino.com/en/app/deviant-inspector](https://www.food4rhino.com/en/app/deviant-inspector)
+<br/>
+<br/>
+
 ## Commands
 Deviant Inspector has two embedded commands that could be typed in the Rhino Command Window.
 
@@ -85,6 +100,9 @@ To avoid long reading, a short warning session is prepared to condense the condi
 - Diagnose blocks will increase the diagnose time depending on how many block definitions in the model.
 - Diagnose Operation will break the build history.
 - "***devro***" is not equal to ```_undo``` command, it could work independently without using "devin" command ahead.
+<br/>
+<br/>
 
 ## Epilogue
 I just hope you never have a situation that need to use this plugin :)
+Enjoy your blaming time :)
