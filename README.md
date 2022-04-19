@@ -51,6 +51,8 @@ By opening "Extrusion" toggle on, the plugin will iterate every brep selected to
 ### Redundancy
 "***Redundancy***" means that a surface could be simplified to has less control point so as to reduce the model's size. 
 The simplification is working on the boundary curves of each surface, to test whether each boundary could be simplified or not.
+<br/>
+Core API used behind this method is the ```Rhino.Geometry.Curve.Simplify()``` to test whether a boundary loop could be simplified or not.
 Hand-made rhino model has more difficulty to reach the goal that every brep is clean and simplest while doing design study, so by default this toggle is turned off.
 <br/>
 By opening "Redundancy" toggle on, the plugin will iterate every brep selected to mark the deviants with color and add a **[Redundancy]** at the objects' name.
