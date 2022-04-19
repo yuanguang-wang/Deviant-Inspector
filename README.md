@@ -101,8 +101,8 @@ To avoid long reading, a short warning session is prepared to condense the condi
 - Diagnose Operation will break the build history.
 - "***devro***" is not equal to ```_undo``` command, it could work independently without using "devin" command ahead.
 <br/>
-<br/>
 
 ## Epilogue
 I just hope you never have a situation that need to use this plugin :)
+<br/>
 Enjoy your blaming time :)
